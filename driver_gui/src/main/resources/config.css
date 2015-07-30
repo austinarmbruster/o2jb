@@ -1,0 +1,47 @@
+/*
+ * Copyright 2015 AnaVation, LLC. 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@CHARSET "ISO-8859-1";
+
+.root {
+  /*  -fx-background-color: #2C3539;*/
+  -fx-background-color: linear-gradient(#2C3539, #6B7274);
+}
+
+.label {
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-text-fill: white;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 0, 0, 0, 1);
+}
+
+#scene-title-text {
+  -fx-font-size: 32px;
+  -fx-font-family: "Arial Black";
+  -fx-fill: #818181;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 0, 0, 0, 1);
+}
+
+.button {
+  -fx-text-fill: white;
+  -fx-font-family: "Arial Narrow";
+  -fx-font-weight: bold;
+  -fx-background-color: linear-gradient(#6B7274, #ABAEB0);
+  -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 2);
+}
+
+.button:hover {
+  -fx-background-color: linear-gradient(#ABAEB0, #6B7274);
+}
