@@ -1,0 +1,8 @@
+/*.dll
+/*.exe
+/*.o
+/*.db
+/*.jar
+/Todo.md
+/lib*.a
+/*.log
