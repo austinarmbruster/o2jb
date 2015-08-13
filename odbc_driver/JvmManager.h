@@ -44,23 +44,23 @@ public:
 
   bool loadConfig(std::string const& propFileName);
   jobject CallStaticObjectMethodA(std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
-  // jobject CallStaticObjectMethod(std::string const& classTag, std::string const& methodTag, int argc = 0, ...);
 
   jobject NewObjectA(std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
 
   void CallVoidMethodA(jobject obj, std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
   jint CallIntMethodA(jobject obj, std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
+  jboolean CallBooleanMethodA(jobject obj, std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
   jobject CallObjectMethodA(jobject obj, std::string const& classTag, std::string const& methodTag, jvalue const * args = NULL);
   virtual jobject CallObjectMethod(jobject obj, std::string const& classTag, std::string const& methodTag);
-  // jobject CallObjectMethod(jobject obj, std::string const& classTag, std::string const& methodTag, int argc = 0, ...);
-  // jobject CallObjectMethod2(jobject obj, std::string const& classTag, std::string const& methodTag, char const * fmt, ...);
-  // jint CallIntMethod(jobject obj, std::string const& classTag, std::string const& methodTag, int argc = 0, ...);
-  // void CallVoidMethod(jobject obj, std::string const& classTag, std::string const& methodTag, int argc = 0, ...);
 
   void DeleteLocalRef(jobject obj);
   jstring toJString(char const * const cStr);
   jstring toJString(char const * const asChar, std::size_t const strLen);
 
+  bool exception_cleared();
+
+  void set_throws(bool);
+  bool is_throws();
 private:
   enum method_type { CONSTRUCTOR, MEMBER_METHOD, STATIC_METHOD };
 
@@ -78,6 +78,8 @@ private:
 
   typedef std::map<std::string, jclass_metadata> mc_ctr_t;
   mc_ctr_t _managedClasses;
+  bool _exceptionCleared;
+  bool _throws;
 };
 
 }

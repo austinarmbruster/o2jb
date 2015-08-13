@@ -25,6 +25,8 @@
 #include <string>
 #include <ostream>
 
+#include <iostream>
+
 #ifndef LOG_LEVEL
 #define LOG_LEVEL 5
 #endif
@@ -38,7 +40,7 @@ static o2jb::TimeReporter now;
 #endif
 
 #if LOG_LEVEL > 1
-#define LOG_ERROR(logger, expression) std::ostream(logger) << now << " ERROR " << __FILE__ << ":" << __LINE__ << " {" << expression << "}\n" << std::flush
+#define LOG_ERROR(logger, expression) (*logger).stream() << now << " ERROR " << __FILE__ << ":" << __LINE__ << " {" << expression << "}\n" << std::flush
 #else
 #define LOG_ERROR(logger, expression) 
 #endif

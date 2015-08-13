@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 AnaVation, LLC. 
+ * Copyright 2015 AnaVation, LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,9 @@
 #include <vector>
 #include <iterator>
 
+#include <iostream>
+using std::endl; using std::cout;
+
 using std::unique_ptr;
 using std::for_each;
 using std::getline;
@@ -66,6 +69,8 @@ const size_t CONSTRUCTOR_TAG_SIZE = CONSTRUCTOR_TAG.size();
 const size_t METHOD_TAG_SIZE = METHOD_TAG.size();
 const size_t STATIC_METHOD_TAG_SIZE = STATIC_METHOD_TAG.size();
 
+LoggerPtr logger = Logger::getLogger("jvm");
+
 unique_ptr<char[]> toSafeCharPtr(string const& str) {
   unique_ptr<char[]> rtnValue(new char[str.size() + 1]);
   strcpy(rtnValue.get(), str.c_str());
@@ -82,7 +87,7 @@ JavaVMOption set_option_string(unique_ptr<char[]> const& str) {
 properties load_app_properties() {
   LoggerPtr logger = Logger::getLogger("config");
   properties props;
-  RegistryKey o2jb(HKEY_CURRENT_USER, "Software\\o2jb", RegistryKey::Mode::READ);
+  RegistryKey o2jb(HKEY_CURRENT_USER, "Software\\AnaVation, LLC.\\Open ODBC JDBC Bridge", RegistryKey::Mode::READ);
   ifstream currentIn;
   string o2jbLoc = o2jb.value("InstallLocation");
   string appPropFile = "current.properties";
@@ -119,7 +124,11 @@ unique_ptr<jvalue[]> make_args(char const * fmt, ...) {
   unique_ptr<jvalue[]> argsArr(new jvalue[numArgs]);
   for (int i = 0; i < numArgs; ++i) {
     // TODO account for the other types of args.
-    argsArr[i].l = va_arg(args, jobject);
+    if ('I' == fmt[i]) {
+      argsArr[i].i = va_arg(args, jint);
+    } else {
+      argsArr[i].l = va_arg(args, jobject);
+    }
   }
   va_end(args);
   return argsArr;
@@ -127,7 +136,8 @@ unique_ptr<jvalue[]> make_args(char const * fmt, ...) {
 
 vector<string> JvmManager::NO_OPTIONS;
 
-JvmManager::JvmManager(string const& classPath, vector<string> const& additionalJvmOptions, string const& jvmPath) : _jvm(NULL) {
+JvmManager::JvmManager(string const& classPath, vector<string> const& additionalJvmOptions, string const& jvmPath) :
+  _jvm(NULL), _exceptionCleared(false), _throws(false) {
   LoggerPtr logger = Logger::getLogger("config");
   vector<unique_ptr<char[]> >::size_type numOptions = 1 + additionalJvmOptions.size();
 
@@ -269,7 +279,34 @@ jint JvmManager::CallIntMethodA(jobject obj, std::string const& classTag, std::s
     throw java_error("Attempting to call a unknown method:  " + methodTag);
   }
 
-  jint rtnValue = _env->CallIntMethodA(obj, iter->second[methodTag], args);
+  jint rtnValue = 0;
+  if (NULL == args) {
+    rtnValue = _env->CallIntMethod(obj, iter->second[methodTag]);
+  } else {
+    rtnValue = _env->CallIntMethodA(obj, iter->second[methodTag], args);
+  }
+  exception_check(classTag, methodTag);
+
+  return rtnValue;
+}
+
+jboolean JvmManager::CallBooleanMethodA(jobject obj, std::string const& classTag, std::string const& methodTag, jvalue const * args) {
+  mc_ctr_t::iterator iter = _managedClasses.find(classTag);
+
+  if (_managedClasses.end() == iter) {
+    throw java_error(("Attempting to call a method on an unknown class:  " + classTag).c_str());
+  }
+
+  if (!iter->second.contains(methodTag)) {
+    throw java_error("Attempting to call a unknown method:  " + methodTag);
+  }
+
+  jboolean rtnValue = 0;
+  if (NULL == args) {
+    rtnValue = _env->CallBooleanMethod(obj, iter->second[methodTag]);
+  } else {
+    rtnValue = _env->CallBooleanMethodA(obj, iter->second[methodTag], args);
+  }
   exception_check(classTag, methodTag);
 
   return rtnValue;
@@ -514,11 +551,13 @@ void JvmManager::exception_check(string const& classTag, string const& methodTag
   if (_env->ExceptionCheck()) {
     jthrowable e = _env->ExceptionOccurred();
     _env->ExceptionClear();
+    _exceptionCleared = true;
 
-    LoggerPtr logger = Logger::getLogger("config");
     string msg = capture_exception(e);
     LOG_ERROR(logger, "Failed to call " << classTag << "." << methodTag << ":  " << msg);
-    throw java_error(msg);
+    if (_throws) {
+      throw java_error(msg);
+    }
   }
 }
 
@@ -543,4 +582,18 @@ jstring JvmManager::toJString(char const * const asChar, std::size_t const strLe
   return jValue;
 }
 
+bool JvmManager::exception_cleared() {
+  bool temp = _exceptionCleared;
+  _exceptionCleared = false;
+
+  return temp;
+}
+
+void JvmManager::set_throws(bool toThrow) {
+  _throws = toThrow;
+}
+
+bool JvmManager::is_throws() {
+  return _throws;
+}
 } // end namespace

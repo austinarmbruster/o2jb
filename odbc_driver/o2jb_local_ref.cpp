@@ -15,6 +15,10 @@
  */
 #include "o2jb_local_ref.h"
 
+#include <iostream>
+
+using namespace std;
+
 namespace o2jb {
 local_ref::local_ref(JvmManager& jvm, jobject obj) : _jvm(jvm), _obj(obj) {}
 

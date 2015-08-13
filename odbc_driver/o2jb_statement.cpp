@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 AnaVation, LLC. 
+ * Copyright 2015 AnaVation, LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ LoggerPtr logger = Logger::getLogger("o2jb");
 O2jbStmtHandle::O2jbStmtHandle(O2jbConnHandle* inConnHandle) : diagState(o2jb::DEFAULT_STATE),
   _stmt(NULL), _isUpdatePs(false), _preparedStmt(NULL), _preparedBindingsPtr(NULL), _resultSet(NULL), _rsmd(NULL),
   _numCols(0), _numRows(-1), _lastFetchOffset(-1), _lastFetchOrientation(-1), _connHandle(inConnHandle) {
-  JNIEnv* env = this->env();
-  _stmt = env->CallObjectMethod(_connHandle->_conn, _connHandle->_createStmtMid);
+  JvmManager& jvm = this->jvm();
+  _stmt = jvm.CallObjectMethod(_connHandle->_conn, "conn", "createStmt");
 }
 
 O2jbStmtHandle::~O2jbStmtHandle() {
@@ -63,7 +63,7 @@ O2jbStmtHandle::~O2jbStmtHandle() {
   }
 }
 
-inline JvmManager& O2jbStmtHandle::jvm() {
+JvmManager& O2jbStmtHandle::jvm() {
   return _connHandle->jvm();
 }
 
@@ -78,25 +78,16 @@ bool O2jbStmtHandle::make_prepared(char const* sql) {
   }
 
   JNIEnv* env = this->env();
+  JvmManager& jvm = this->jvm();
 
   if (NULL != _preparedStmt) {
-    env->CallVoidMethod(_preparedStmt, _connHandle->_psCloseMid);
-    if (JNI_TRUE == env->ExceptionCheck()) {
-      // TODO log failure to close
-      env->ExceptionClear();
-    }
+    jvm.CallVoidMethodA(_preparedStmt, "ps", "close");
   }
 
   jstring jSql = env->NewStringUTF(sql);
   if (NULL != jSql) {
-    _preparedStmt = env->CallObjectMethod(_connHandle->_conn, _connHandle->_prepStmtMid, jSql);
-    if (JNI_TRUE == env->ExceptionCheck()) {
-      // TODO log failure due to prepare
-      env->ExceptionClear();
-    } else {
-      _preparedBindingsPtr = new bindings_ctr_t();
-      rtnValue = true;
-    }
+    _preparedStmt = jvm.CallObjectMethodA(_connHandle->_conn, "conn", "prepareStatement", make_args("L", jSql).get());
+    rtnValue = true;
   }
 
   return rtnValue;

@@ -78,6 +78,7 @@ void O2jbEnvHandle::ensureJvm() {
         _pJvmMgr = new JvmManager(classPath, jvmOptions, registryPath);
       }
       _pJvmMgr->loadConfig("jvmManager.properties");
+      _pJvmMgr->set_throws(false);
     }
   }
 }

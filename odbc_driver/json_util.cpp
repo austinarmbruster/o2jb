@@ -16,7 +16,8 @@
 #include "json_util.h"
 
 #include <cctype>
-
+#include <cstdio>
+ 
 using std::isspace;
 using std::map;
 using std::string;

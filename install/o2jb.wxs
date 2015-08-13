@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Name='Open ODBC JDBC Bridge' Id='b38f7703-ee67-4508-9f87-98339e7466cd' UpgradeCode='49381817-f2c5-4041-ac16-668f4dfac0ec'
+    Language='1033' Codepage='1252' Version='0.1.0' Manufacturer='AnaVation, LLC.'>
+
+    <Package Id='*' Keywords='Installer' Description="AnaVation's O2JB 0.1.0 Installer"
+      Comments='O2JB is copyrighted by AnaVation LLC with source code provided under Apache License 2.0' Manufacturer='AnaVation, LLC'
+      InstallerVersion='200' Languages='1033' Compressed='yes' SummaryCodepage='1252' Platform="x64" />
+
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+    <Property Id='DiskPrompt' Value="AnaVation O2JB Installation [1]" />
+
+    <Condition Message='You need to be an administrator to install this product.'>  
+     Privileged  
+    </Condition>
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFiles64Folder' Name='PFiles'>
+        <Directory Id='AnaVation' Name='AnaVation'>
+          <Directory Id='INSTALLDIR' Name='O2JB'>
+            <Component Id='OneSheet' Guid='6f78d55e-dda7-4986-80ec-cb77165642ca' Win64='yes'>
+              <File Id='OneSheetPdf' Name='O2jbOneSheet.pdf' DiskId='1' Source='O2jbOneSheet.pdf' KeyPath='yes'>
+                <Shortcut Id="startmenuOneSheet" Directory="ProgramMenuDir" Name="O2JB One Sheet" WorkingDirectory='INSTALLDIR' Icon="O2jbInstallerIcon.ico" IconIndex="0" Advertise="yes" />
+              </File>
+            </Component>
+
+            <Component Id='O2jbLibrary' Guid='308cb84e-0f52-41ba-98af-c68aae85d5ad' Win64='yes'>
+              <File Id='O2jbDLL' Name='o2jb.dll' DiskId='1' Source='..\odbc_driver\o2jb.dll' KeyPath='yes' />
+            </Component>
+
+            <Component Id='ConfigGuiProps' Guid='81c14b1f-a218-4c8d-8f4b-d16e37bd808f' Win64='yes'>
+              <File Id='ConfigGuiProperties' Name='configGui.properties' DiskId='1' Source='..\odbc_driver\configGui.properties' KeyPath='yes' />
+            </Component>
+
+            <Component Id='CurrentProps' Guid='bb2f4696-aa69-4c6e-8cf1-2ae0277ebef2' Win64='yes'>
+              <File Id='CurrentProperties' Name='current.properties' DiskId='1' Source='..\odbc_driver\current.properties' KeyPath='yes' />
+            </Component>
+
+            <Component Id='JvmManagerProps' Guid='eb79d477-d483-4506-ab80-530c8d1b7e6e' Win64='yes'>
+              <File Id='JvmManagerProperties' Name='jvmManager.properties' DiskId='1' Source='..\odbc_driver\jvmManager.properties' KeyPath='yes' />
+            </Component>
+
+            <Component Id='CommonsDbcpJarLib' Guid='9c3d38f4-ad2d-4e9e-8d39-2a87460e9162' Win64='yes'>
+              <File Id='CommonsDbcpJar' Name='commons-dbcp-1.4.jar' DiskId='1' Source='..\odbc_driver\commons-dbcp-1.4.jar' KeyPath='yes' />
+            </Component>
+
+            <Component Id='CommonsPoolJarLib' Guid='26366c54-a4e6-4c09-a695-6781d960dd97' Win64='yes'>
+              <File Id='CommonsPoolJar' Name='commons-pool-1.5.4.jar' DiskId='1' Source='..\odbc_driver\commons-pool-1.5.4.jar' KeyPath='yes' />
+            </Component>
+
+            <Component Id='O2jbGuiJarLib' Guid='362f578e-78c8-4362-81aa-a04314a76641' Win64='yes'>
+              <File Id='O2jbGuiJar' Name='o2jb-gui-0.0.1.jar' DiskId='1' Source='..\odbc_driver\o2jb-gui-0.0.1.jar' KeyPath='yes' />
+            </Component>
+
+            <Component Id="AppRegistryEntries" Guid="3000342c-0d54-4700-949a-1958b964aa60" Win64='yes'>
+              <RegistryKey Root="HKCU"
+                           Key="Software\AnaVation, LLC.\Open ODBC JDBC Bridge">
+                <RegistryValue Type="string" Name="InstallLocation" Value="[INSTALLDIR]"/>
+              </RegistryKey>
+            </Component>
+            <Component Id="DriverRegistryEntries" Guid="b118132b-9ef2-4d6a-b451-1e624c6608fe" Win64='yes'>
+              <RegistryKey Root="HKLM"
+                           Key="Software\ODBC\ODBCINST.INI\O2JB Driver">
+                <RegistryValue Type="string" Name="ConnectionFunctions" Value="YYN"/>
+                <RegistryValue Type="string" Name="Description" Value="ODBC to JDBC Driver"/>
+                <RegistryValue Type="string" Name="Driver" Value="[INSTALLDIR]\o2jb.dll"/>
+                <RegistryValue Type="string" Name="Setup" Value="[INSTALLDIR]\o2jb.dll"/>
+                <RegistryValue Type="string" Name="SQLLevel" Value="0"/>
+              </RegistryKey>
+              <RegistryKey Root="HKLM"
+                           Key="Software\ODBC\ODBCINST.INI\ODBC Drivers">
+                <RegistryValue Type="string" Name="O2JB Driver" Value="Installed"/>
+              </RegistryKey>
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder" Name="Programs">
+        <Directory Id="ProgramMenuDir" Name="O2JB">
+          <Component Id="ProgramMenuDir" Guid="fdf80be9-dd1b-49ed-9cf1-57fc1f9df41a" Win64='yes'>
+            <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+            <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='O2jbLibrary' />
+      <ComponentRef Id='OneSheet' />
+      <ComponentRef Id='ProgramMenuDir' />
+      <ComponentRef Id='ConfigGuiProps' />
+      <ComponentRef Id='CurrentProps' />
+      <ComponentRef Id='JvmManagerProps' />
+      <ComponentRef Id='CommonsDbcpJarLib' />
+      <ComponentRef Id='CommonsPoolJarLib' />
+      <ComponentRef Id='O2jbGuiJarLib' />
+      <ComponentRef Id='AppRegistryEntries' />
+      <ComponentRef Id='DriverRegistryEntries' />
+    </Feature>
+
+    <Icon Id="O2jbInstallerIcon.ico" SourceFile="av.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="O2jbInstallerIcon.ico" />
+  </Product>
+</Wix>

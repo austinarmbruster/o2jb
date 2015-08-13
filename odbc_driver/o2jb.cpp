@@ -44,6 +44,9 @@
 #include <string>
 #include <vector>
 
+#include <iostream>
+using std::endl; using std::cout;
+
 using std::exception;
 using std::ifstream;
 using std::inserter;
@@ -73,6 +76,8 @@ using o2jb::O2jbConnHandle;
 using o2jb::O2jbStmtHandle;
 using o2jb::make_args;
 
+#define JVM_CALL(expression) expression; if (jvm.exception_cleared()) { return SQL_ERROR; }
+#define UNUSED(expression) (void)(expression)
 
 // TODO add memory checks to the current logic - try {} catch (std::bad_alloc&)
 // {release a  pre-allocated chunk of memory to account for memory burned in reporting no memory}
@@ -166,7 +171,7 @@ LoggerPtr logger = Logger::getLogger("o2jb");
 
 } // end of anonymous namespace
 
-SQLRETURN SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle) {
+SQLRETURN ADD_CALL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle) {
   SQLRETURN rtnValue = SQL_ERROR;
   // TODO put the created handle into a temporary variable
   try {
@@ -224,7 +229,7 @@ SQLRETURN SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDL
   return rtnValue;
 }
 
-SQLRETURN SQLBindCol(
+SQLRETURN ADD_CALL SQLBindCol(
   SQLHSTMT       stmtHandle,
   SQLUSMALLINT   columnNumber,
   SQLSMALLINT    targetType,
@@ -245,7 +250,7 @@ SQLRETURN SQLBindCol(
   return rtnValue;
 }
 
-SQLRETURN SQLBindParameter(
+SQLRETURN ADD_CALL SQLBindParameter(
   SQLHSTMT        stmtHandle,
   SQLUSMALLINT    parameterNumber,
   SQLSMALLINT     inputOutputType,
@@ -256,6 +261,9 @@ SQLRETURN SQLBindParameter(
   SQLPOINTER      parameterValuePtr,
   SQLLEN          bufferLength,
   SQLLEN *        strLenOrInd) {
+  UNUSED(parameterType);
+  UNUSED(columnSize);
+  UNUSED(decimalDigits);
 
   SQLRETURN rtnValue = SQL_ERROR;
   if (NULL == stmtHandle) {
@@ -294,37 +302,41 @@ SQLRETURN SQLBindParameter(
   return rtnValue;
 }
 
-SQLRETURN SQLBrowseConnect(
+SQLRETURN ADD_CALL SQLBrowseConnect(
   SQLHDBC         ConnectionHandle,
   SQLCHAR *       InConnectionString,
   SQLSMALLINT     StringLength1,
   SQLCHAR *       OutConnectionString,
   SQLSMALLINT     BufferLength,
   SQLSMALLINT *   StringLength2Ptr) {
+  UNUSED(ConnectionHandle);
+  UNUSED(InConnectionString);
+  UNUSED(StringLength1);
+  UNUSED(OutConnectionString);
+  UNUSED(BufferLength);
+  UNUSED(StringLength2Ptr);
+
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-// SQLRETURN SQLBulkOperations(
-//   SQLHSTMT       StatementHandle,
-//   SQLUSMALLINT   Operation) {
-//   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
-//   return SQL_ERROR;
-// }
-
-SQLRETURN SQLCancel(
+SQLRETURN ADD_CALL SQLCancel(
   SQLHSTMT     StatementHandle) {
+  UNUSED(StatementHandle);
+
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLCloseCursor(
+SQLRETURN ADD_CALL SQLCloseCursor(
   SQLHSTMT     StatementHandle) {
+  UNUSED(StatementHandle);
+
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLColAttribute (
+SQLRETURN ADD_CALL SQLColAttribute (
   SQLHSTMT        stmtHandle,
   SQLUSMALLINT    columnNumber,
   SQLUSMALLINT    fieldIdentifier,
@@ -344,16 +356,18 @@ SQLRETURN SQLColAttribute (
       jobject& rsmd = specificHandle->_rsmd;
       jint jColNumber = columnNumber;
       JNIEnv* env = specificHandle->env();
+      JvmManager& jvm = specificHandle->jvm();
 
       switch (fieldIdentifier) {
       case SQL_DESC_DISPLAY_SIZE:
       {
-        jint displaySize = env->CallIntMethod(rsmd, specificHandle->_connHandle->_colDisplaySizeMid, jColNumber);
+        JVM_CALL(jint displaySize = jvm.CallIntMethodA(rsmd, "rsmd", "colDisplaySize",
+                                    make_args("I", jColNumber).get()));
 
         if (255 == displaySize) {
           displaySize = 50;
         }
-        *NumericAttributePtr = displaySize;
+        *(reinterpret_cast<SQLLEN *>(NumericAttributePtr)) = displaySize;
         rtnValue = SQL_SUCCESS;
       }
       break;
@@ -363,13 +377,14 @@ SQLRETURN SQLColAttribute (
         // jint javaType = env->CallIntMethod(rsmd, specificHandle->_connHandle->_colType, jColNumber);
         // switch...
         // Assume text for now
-        *NumericAttributePtr = SQL_CHAR;
+        *(reinterpret_cast<SQLLEN *>(NumericAttributePtr)) = SQL_CHAR;
         rtnValue = SQL_SUCCESS;
       }
       break;
       case SQL_DESC_NAME:
       {
-        jobject colNameObj = env->CallObjectMethod(rsmd, specificHandle->_connHandle->_colName, jColNumber);
+        JVM_CALL(jobject colNameObj = jvm.CallObjectMethodA(rsmd, "rsmd", "colName",
+                                      make_args("I", jColNumber).get()));
 
         jstring colNameStr = reinterpret_cast<jstring>(colNameObj);
 
@@ -397,7 +412,7 @@ SQLRETURN SQLColAttribute (
       }
       break;
       default:
-        *NumericAttributePtr = 0;
+        *(reinterpret_cast<SQLLEN *>(NumericAttributePtr)) = 0;
       }
 
       if (JNI_TRUE == env->ExceptionCheck()) {
@@ -413,7 +428,7 @@ SQLRETURN SQLColAttribute (
   return rtnValue;
 }
 
-SQLRETURN SQLColumnPrivileges(
+SQLRETURN ADD_CALL SQLColumnPrivileges(
   SQLHSTMT      StatementHandle,
   SQLCHAR *     CatalogName,
   SQLSMALLINT   NameLength1,
@@ -423,6 +438,16 @@ SQLRETURN SQLColumnPrivileges(
   SQLSMALLINT   NameLength3,
   SQLCHAR *     ColumnName,
   SQLSMALLINT   NameLength4) {
+  UNUSED(StatementHandle);
+  UNUSED(CatalogName);
+  UNUSED(NameLength1);
+  UNUSED(SchemaName);
+  UNUSED(NameLength2);
+  UNUSED(TableName);
+  UNUSED(NameLength3);
+  UNUSED(ColumnName);
+  UNUSED(NameLength4);
+
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
@@ -441,7 +466,7 @@ SQLRETURN SQLColumns(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLConnect(
+SQLRETURN ADD_CALL SQLConnect(
   SQLHDBC        ConnectionHandle,
   SQLCHAR *      ServerName,
   SQLSMALLINT    NameLength1,
@@ -452,19 +477,19 @@ SQLRETURN SQLConnect(
   return SQL_SUCCESS;
 }
 
-SQLRETURN SQLConnect(
+SQLRETURN ADD_CALL SQLConnect(
   SQLHDBC        ConnectionHandle) {
   return SQL_SUCCESS;
 }
 
-SQLRETURN SQLCopyDesc(
+SQLRETURN ADD_CALL SQLCopyDesc(
   SQLHDESC     SourceDescHandle,
   SQLHDESC     TargetDescHandle) {
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLDataSources(
+SQLRETURN ADD_CALL SQLDataSources(
   SQLHENV          EnvironmentHandle,
   SQLUSMALLINT     Direction,
   SQLCHAR *        ServerName,
@@ -477,7 +502,7 @@ SQLRETURN SQLDataSources(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLDescribeCol(
+SQLRETURN ADD_CALL SQLDescribeCol(
   SQLHSTMT       StatementHandle,
   SQLUSMALLINT   columnNumber,
   SQLCHAR *      ColumnName,
@@ -490,7 +515,7 @@ SQLRETURN SQLDescribeCol(
   return columnNumber < 3 ? SQL_SUCCESS : SQL_SUCCESS + 1;
 }
 
-SQLRETURN SQLDescribeParam(
+SQLRETURN ADD_CALL SQLDescribeParam(
   SQLHSTMT        StatementHandle,
   SQLUSMALLINT    ParameterNumber,
   SQLSMALLINT *   DataTypePtr,
@@ -501,12 +526,12 @@ SQLRETURN SQLDescribeParam(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLDisconnect(
+SQLRETURN ADD_CALL SQLDisconnect(
   SQLHDBC        ConnectionHandle) {
   return SQL_SUCCESS;
 }
 
-SQLRETURN SQLDriverConnect(
+SQLRETURN ADD_CALL SQLDriverConnect(
   SQLHDBC         connHandle,
   SQLHWND         windowHandle,
   SQLCHAR *       inConnectionString,
@@ -571,7 +596,7 @@ SQLRETURN SQLDriverConnect(
   return rtnValue;
 }
 
-SQLRETURN SQLEndTran(
+SQLRETURN ADD_CALL SQLEndTran(
   SQLSMALLINT   HandleType,
   SQLHANDLE     Handle,
   SQLSMALLINT   CompletionType) {
@@ -595,7 +620,42 @@ bool determine_sql_type(SQLCHAR *stmtText, SQLINTEGER textLength, JvmManager& jv
   return isUpdate;
 }
 
-SQLRETURN SQLExecDirect(
+void loadMd(O2jbStmtHandle* specificHandle, JvmManager& jvm) {
+  specificHandle->_rsmd = jvm.CallObjectMethodA(specificHandle->_resultSet, "rs", "metaData");
+  jint providedNumCols = jvm.CallIntMethodA(specificHandle->_rsmd, "rsmd", "numCols");
+  specificHandle->_numCols = reinterpret_cast<long>(providedNumCols);
+  specificHandle->_numRows = -1;
+}
+
+SQLRETURN ADD_CALL doUpdate(O2jbStmtHandle* specificHandle, JvmManager& jvm, jstring jSql) {
+  try {
+    // update
+    specificHandle->_resultSet = NULL;
+    specificHandle->_rsmd = NULL;
+    specificHandle->_numCols = 0;
+    specificHandle->_numRows = 0;
+    jint numRows = jvm.CallIntMethodA(specificHandle->_stmt, "stmt", "execUpdate", make_args("l", jSql).get());
+
+    specificHandle->_resultSet = NULL;
+    specificHandle->_rsmd = NULL;
+    specificHandle->_numCols = 0;
+    specificHandle->_numRows = reinterpret_cast<long>(numRows);
+  } catch (java_error& e) {
+    return SQL_ERROR;
+  }
+  return SQL_SUCCESS;
+}
+
+SQLRETURN ADD_CALL doSelect(O2jbStmtHandle* specificHandle, JvmManager& jvm, jstring jSql) {
+  JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethodA(specificHandle->_stmt, "stmt", "execQuery", make_args("L", jSql).get()));
+  JVM_CALL(specificHandle->_rsmd = jvm.CallObjectMethodA(specificHandle->_resultSet, "rs", "metaData"));
+  JVM_CALL(jint providedNumCols = jvm.CallIntMethodA(specificHandle->_rsmd, "rsmd", "numCols"));
+  specificHandle->_numCols = reinterpret_cast<long>(providedNumCols);
+  specificHandle->_numRows = -1;
+  return SQL_SUCCESS;
+}
+
+SQLRETURN ADD_CALL SQLExecDirect(
   SQLHSTMT     stmtHandle,
   SQLCHAR *    stmtText,
   SQLINTEGER   textLength) {
@@ -605,57 +665,34 @@ SQLRETURN SQLExecDirect(
   if (statements.end() == iter) {
     rtnValue = SQL_INVALID_HANDLE;
   } else {
-    // determine what kind of query this is
     JvmManager& jvm = specificHandle->jvm();
-    try {
-      jstring jSql = NULL;
-      bool isUpdate = determine_sql_type(stmtText, textLength, jvm, &jSql);
-      local_ref jSqlRef(jvm, jSql);
-      if (isUpdate) {
-        // update
-        jint numRows = jvm.CallIntMethodA(specificHandle->_stmt, "stmt", "execUpdate", make_args("l", jSql).get());
 
-        specificHandle->_resultSet = NULL;
-        specificHandle->_rsmd = NULL;
-        specificHandle->_numCols = 0;
-        specificHandle->_numRows = reinterpret_cast<long>(numRows);
-      } else {
-        // query
-        specificHandle->_resultSet = jvm.CallObjectMethodA(specificHandle->_stmt, "stmt", "execQuery", make_args("L", jSql).get());
-
-        specificHandle->_rsmd = jvm.CallObjectMethodA(specificHandle->_resultSet, "rs", "metaData");
-        jint providedNumCols = jvm.CallIntMethodA(specificHandle->_rsmd, "rsmd", "numCols");
-        specificHandle->_numCols = reinterpret_cast<long>(providedNumCols);
-        specificHandle->_numRows = -1;
-
-      }
-      rtnValue = SQL_SUCCESS;
-    } catch (java_error& e) {
-      LOG_ERROR(logger, "Failed to run the query:  " << toCppString(reinterpret_cast<char *>(stmtText), textLength)
-                << " " << e.what());
-      set_diag(specificHandle, GENERAL_ERROR);
-    }
+    // determine what kind of query this is
+    jstring jSql = NULL;
+    bool isUpdate = determine_sql_type(stmtText, textLength, jvm, &jSql);
+    local_ref jSqlRef(jvm, jSql);
+    rtnValue = isUpdate ? doUpdate(specificHandle, jvm, jSql) : doSelect(specificHandle, jvm, jSql);
   }
   return rtnValue;
 }
 
-SQLRETURN SQLExecute(
+SQLRETURN ADD_CALL SQLExecute(
   SQLHSTMT     stmtHandle) {
   SQLRETURN rtnValue = SQL_ERROR;
-  if (NULL == stmtHandle) {
-    rtnValue = SQL_INVALID_HANDLE;
-  } else {
-    O2jbStmtHandle* specificHandle = static_cast<O2jbStmtHandle*>(stmtHandle);
-
-    stmt_ctr_t::iterator iter = statements.find(specificHandle);
-
-    if (statements.end() == iter) {
-      rtnValue = SQL_INVALID_HANDLE;
-    } else if (NULL == specificHandle->_preparedStmt || NULL == specificHandle->_preparedBindingsPtr) {
+  try {
+    if (NULL == stmtHandle) {
       rtnValue = SQL_INVALID_HANDLE;
     } else {
-      JvmManager& jvm = specificHandle->jvm();
-      try {
+      O2jbStmtHandle* specificHandle = static_cast<O2jbStmtHandle*>(stmtHandle);
+
+      stmt_ctr_t::iterator iter = statements.find(specificHandle);
+
+      if (statements.end() == iter) {
+        rtnValue = SQL_INVALID_HANDLE;
+      } else if (NULL == specificHandle->_preparedStmt || NULL == specificHandle->_preparedBindingsPtr) {
+        rtnValue = SQL_INVALID_HANDLE;
+      } else {
+        JvmManager& jvm = specificHandle->jvm();
         // TODO use for_each
         for (O2jbStmtHandle::bindings_ctr_t::iterator iter = specificHandle->_preparedBindingsPtr->begin();
              iter != specificHandle->_preparedBindingsPtr->end(); ++iter) {
@@ -663,37 +700,41 @@ SQLRETURN SQLExecute(
         }
 
         // determine what kind of query this is
-        // JNIEnv* env = specificHandle->env(); TODO: REMOVE
         if (specificHandle->_isUpdatePs) {
           // update
-          jint numRows = jvm.CallIntMethodA(specificHandle->_preparedStmt, "ps", "execUpdate");
+          jint numRows = 0;
+          JVM_CALL(numRows = jvm.CallIntMethodA(specificHandle->_preparedStmt, "ps", "execUpdate"));
           specificHandle->_resultSet = NULL;
           specificHandle->_rsmd = NULL;
           specificHandle->_numCols = 0;
           specificHandle->_numRows = reinterpret_cast<long>(numRows);
+          rtnValue = SQL_SUCCESS;
         } else {
           // query
-          specificHandle->_resultSet = jvm.CallObjectMethod(specificHandle->_preparedStmt, "ps", "execQuery");
-          specificHandle->_rsmd = jvm.CallObjectMethodA(specificHandle->_resultSet, "rs", "metaData");
-          jint providedNumCols = jvm.CallIntMethodA(specificHandle->_rsmd, "rsmd", "numCols");
+          specificHandle->_rsmd = NULL;
+          specificHandle->_numCols = 0;
+          specificHandle->_numRows = 0;
+
+          JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethod(specificHandle->_preparedStmt, "ps", "execQuery"));
+          JVM_CALL(specificHandle->_rsmd = jvm.CallObjectMethodA(specificHandle->_resultSet, "rs", "metaData"));
+          JVM_CALL(jint providedNumCols = jvm.CallIntMethodA(specificHandle->_rsmd, "rsmd", "numCols"));
           specificHandle->_numCols = reinterpret_cast<long>(providedNumCols);
           specificHandle->_numRows = -1;
           rtnValue = SQL_SUCCESS;
         }
-      } catch (java_error& e) {
-        // LOG_ERROR(logger, string("Failed to run the prepared query:  ") + e.what());
-        set_diag(specificHandle, GENERAL_ERROR);
       }
     }
+  } catch (...) {
+    cout << "Caught something" << endl;
   }
   return rtnValue;
 }
 
-SQLRETURN doFetch(O2jbStmtHandle* specificHandle) {
+SQLRETURN ADD_CALL doFetch(O2jbStmtHandle* specificHandle) {
   SQLRETURN rtnValue = SQL_ERROR;
   JNIEnv* env = specificHandle->env();
-  jboolean hasNext = env->CallBooleanMethod(specificHandle->_resultSet,
-                     specificHandle->_connHandle->_nextMid);
+  JvmManager& jvm = specificHandle->jvm();
+  JVM_CALL(jboolean hasNext = jvm.CallBooleanMethodA(specificHandle->_resultSet, "rs", "next"));
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
@@ -715,7 +756,7 @@ SQLRETURN doFetch(O2jbStmtHandle* specificHandle) {
   return rtnValue;
 }
 
-SQLRETURN SQLExtendedFetch(
+SQLRETURN ADD_CALL SQLExtendedFetch(
   SQLHSTMT         stmtHandle,
   SQLUSMALLINT     fetchOrientation,
   SQLLEN           fetchOffset,
@@ -752,7 +793,7 @@ SQLRETURN SQLExtendedFetch(
   return rtnValue;
 }
 
-SQLRETURN SQLFetch(
+SQLRETURN ADD_CALL SQLFetch(
   SQLHSTMT stmtHandle) {
   SQLRETURN rtnValue = SQL_ERROR;
   if (NULL == stmtHandle) {
@@ -771,7 +812,7 @@ SQLRETURN SQLFetch(
   return rtnValue;
 }
 
-SQLRETURN SQLFetchScroll(
+SQLRETURN ADD_CALL SQLFetchScroll(
   SQLHSTMT      StatementHandle,
   SQLSMALLINT   FetchOrientation,
   SQLLEN        FetchOffset) {
@@ -779,7 +820,7 @@ SQLRETURN SQLFetchScroll(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLForeignKeys(
+SQLRETURN ADD_CALL SQLForeignKeys(
   SQLHSTMT       StatementHandle,
   SQLCHAR *      PKCatalogName,
   SQLSMALLINT    NameLength1,
@@ -798,16 +839,16 @@ SQLRETURN SQLForeignKeys(
 }
 
 // SQLFreeConnect
-SQLRETURN SQLFreeConnect(SQLHANDLE inputHandle) {
+SQLRETURN ADD_CALL SQLFreeConnect(SQLHANDLE inputHandle) {
   return SQLFreeHandle(SQL_HANDLE_ENV, inputHandle);
 }
 
 // SQLFreeEnv
-SQLRETURN SQLFreeEnv(SQLHANDLE inputHandle) {
+SQLRETURN ADD_CALL SQLFreeEnv(SQLHANDLE inputHandle) {
   return SQLFreeHandle(SQL_HANDLE_ENV, inputHandle);
 }
 
-SQLRETURN SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle) {
+SQLRETURN ADD_CALL SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle) {
   SQLRETURN rtnVal = SQL_ERROR;
 
   if (inputHandle != NULL) {
@@ -859,7 +900,7 @@ SQLRETURN SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle) {
 }
 
 // Already Exist?
-SQLRETURN SQLFreeStmt(
+SQLRETURN ADD_CALL SQLFreeStmt(
   SQLHSTMT       inputHandle,
   SQLUSMALLINT   option) {
   switch (option) {
@@ -870,7 +911,7 @@ SQLRETURN SQLFreeStmt(
   }
 }
 
-SQLRETURN SQLGetConnectAttr(
+SQLRETURN ADD_CALL SQLGetConnectAttr(
   SQLHDBC        ConnectionHandle,
   SQLINTEGER     Attribute,
   SQLPOINTER     ValuePtr,
@@ -883,7 +924,7 @@ SQLRETURN SQLGetConnectAttr(
 // SQLGetConnectOption
 
 
-SQLRETURN SQLGetCursorName(
+SQLRETURN ADD_CALL SQLGetCursorName(
   SQLHSTMT        StatementHandle,
   SQLCHAR *       CursorName,
   SQLSMALLINT     BufferLength,
@@ -893,7 +934,7 @@ SQLRETURN SQLGetCursorName(
 }
 
 
-SQLRETURN SQLGetData(
+SQLRETURN ADD_CALL SQLGetData(
   SQLHSTMT       StatementHandle,
   SQLUSMALLINT   colNum,
   SQLSMALLINT    TargetType,
@@ -909,7 +950,7 @@ SQLRETURN SQLGetData(
   return rtnVal;
 }
 
-SQLRETURN SQLGetDescRec(
+SQLRETURN ADD_CALL SQLGetDescRec(
   SQLHDESC        DescriptorHandle,
   SQLSMALLINT     RecNumber,
   SQLCHAR *       Name,
@@ -925,7 +966,7 @@ SQLRETURN SQLGetDescRec(
   return SQL_NO_DATA;
 }
 
-SQLRETURN SQLGetDiagField(
+SQLRETURN ADD_CALL SQLGetDiagField(
   SQLSMALLINT     handleType,
   SQLHANDLE       handle,
   SQLSMALLINT     recNumber,
@@ -963,7 +1004,7 @@ SQLRETURN SQLGetDiagField(
   return rtnValue;
 }
 
-SQLRETURN SQLGetDiagRec(
+SQLRETURN ADD_CALL SQLGetDiagRec(
   SQLSMALLINT     HandleType,
   SQLHANDLE       Handle,
   SQLSMALLINT     RecNumber,
@@ -975,7 +1016,7 @@ SQLRETURN SQLGetDiagRec(
   return SQL_SUCCESS;
 }
 
-SQLRETURN SQLGetEnvAttr(
+SQLRETURN ADD_CALL SQLGetEnvAttr(
   SQLHENV        envHandle,
   SQLINTEGER     attribute,
   SQLPOINTER     valuePtr,
@@ -1032,7 +1073,7 @@ SQLRETURN SQLGetEnvAttr(
 //      SQLUSMALLINT *    supportedPtr) {
 // }
 
-SQLRETURN SQLGetInfo(
+SQLRETURN ADD_CALL SQLGetInfo(
   SQLHDBC         connectionHandle,
   SQLUSMALLINT    infoType,
   SQLPOINTER      infoValuePtr,
@@ -1063,7 +1104,7 @@ SQLRETURN SQLGetInfo(
 }
 
 
-SQLRETURN SQLGetStmtAttr(
+SQLRETURN ADD_CALL SQLGetStmtAttr(
   SQLHSTMT        StatementHandle,
   SQLINTEGER      Attribute,
   SQLPOINTER      ValuePtr,
@@ -1076,20 +1117,20 @@ SQLRETURN SQLGetStmtAttr(
 // SQLGetStmtOption
 
 
-SQLRETURN SQLGetTypeInfo(
+SQLRETURN ADD_CALL SQLGetTypeInfo(
   SQLHSTMT      StatementHandle,
   SQLSMALLINT   DataType) {
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLMoreResults(
+SQLRETURN ADD_CALL SQLMoreResults(
   SQLHSTMT     StatementHandle) {
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLNativeSql(
+SQLRETURN ADD_CALL SQLNativeSql(
   SQLHDBC        ConnectionHandle,
   SQLCHAR *      InStatementText,
   SQLINTEGER     TextLength1,
@@ -1101,14 +1142,14 @@ SQLRETURN SQLNativeSql(
 }
 
 
-SQLRETURN SQLNumParams(
+SQLRETURN ADD_CALL SQLNumParams(
   SQLHSTMT        StatementHandle,
   SQLSMALLINT *   ParameterCountPtr) {
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
   return SQL_ERROR;
 }
 
-SQLRETURN SQLNumResultCols(
+SQLRETURN ADD_CALL SQLNumResultCols(
   SQLHSTMT        stmtHandle,
   SQLSMALLINT *   colCntPtr) {
   O2jbStmtHandle* specificHandle = reinterpret_cast<O2jbStmtHandle*>(stmtHandle);
@@ -1117,7 +1158,7 @@ SQLRETURN SQLNumResultCols(
   return SQL_SUCCESS;
 }
 
-SQLRETURN SQLParamData(
+SQLRETURN ADD_CALL SQLParamData(
   SQLHSTMT       StatementHandle,
   SQLPOINTER *   ValuePtrPtr) {
   LOG_ERROR(logger, "returning error in " << __FILE__ << ":" << __LINE__ << " due to unimplemented function.");
@@ -1126,7 +1167,7 @@ SQLRETURN SQLParamData(
 
 // SQLParamOptions
 
-SQLRETURN SQLPrepare(
+SQLRETURN ADD_CALL SQLPrepare(
   SQLHSTMT      stmtHandle,
   SQLCHAR *     sql,
   SQLINTEGER    length) {
@@ -1150,7 +1191,7 @@ SQLRETURN SQLPrepare(
         JvmManager& jvm = specificHandle->jvm();
         jstring jSql;
         specificHandle->_isUpdatePs = determine_sql_type(sql, length, jvm, &jSql);
-        local_ref(jvm, jSql);
+        // local_ref(jvm, jSql);
         char* cSql = reinterpret_cast<char*>(sql);
         bool goodPrep = false;
         if (SQL_NTS == length) {
@@ -1171,7 +1212,7 @@ SQLRETURN SQLPrepare(
   return rtnValue;
 }
 
-SQLRETURN SQLPrimaryKeys(
+SQLRETURN ADD_CALL SQLPrimaryKeys(
   SQLHSTMT       StatementHandle,
   SQLCHAR *      CatalogName,
   SQLSMALLINT    NameLength1,
@@ -1184,7 +1225,7 @@ SQLRETURN SQLPrimaryKeys(
 }
 
 
-SQLRETURN SQLProcedureColumns(
+SQLRETURN ADD_CALL SQLProcedureColumns(
   SQLHSTMT      StatementHandle,
   SQLCHAR *     CatalogName,
   SQLSMALLINT   NameLength1,
@@ -1199,7 +1240,7 @@ SQLRETURN SQLProcedureColumns(
 }
 
 
-SQLRETURN SQLProcedures(
+SQLRETURN ADD_CALL SQLProcedures(
   SQLHSTMT       StatementHandle,
   SQLCHAR *      CatalogName,
   SQLSMALLINT    NameLength1,
@@ -1211,7 +1252,7 @@ SQLRETURN SQLProcedures(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLPutData(
+SQLRETURN ADD_CALL SQLPutData(
   SQLHSTMT     StatementHandle,
   SQLPOINTER   DataPtr,
   SQLLEN       StrLen_or_Ind) {
@@ -1219,7 +1260,7 @@ SQLRETURN SQLPutData(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLRowCount(
+SQLRETURN ADD_CALL SQLRowCount(
   SQLHSTMT   stmtHandle,
   SQLLEN *   rowCountPtr) {
   // TODO validate the handle
@@ -1230,7 +1271,7 @@ SQLRETURN SQLRowCount(
 
 // SQLSetConnectOption
 
-SQLRETURN SQLSetCursorName(
+SQLRETURN ADD_CALL SQLSetCursorName(
   SQLHSTMT      StatementHandle,
   SQLCHAR *     CursorName,
   SQLSMALLINT   NameLength) {
@@ -1238,7 +1279,7 @@ SQLRETURN SQLSetCursorName(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLSetDescField(
+SQLRETURN ADD_CALL SQLSetDescField(
   SQLHDESC      DescriptorHandle,
   SQLSMALLINT   RecNumber,
   SQLSMALLINT   FieldIdentifier,
@@ -1249,7 +1290,7 @@ SQLRETURN SQLSetDescField(
 }
 
 
-SQLRETURN SQLSetDescRec(
+SQLRETURN ADD_CALL SQLSetDescRec(
   SQLHDESC      DescriptorHandle,
   SQLSMALLINT   RecNumber,
   SQLSMALLINT   Type,
@@ -1264,7 +1305,7 @@ SQLRETURN SQLSetDescRec(
   return SQL_ERROR;
 }
 
-SQLRETURN set_env_attr(
+SQLRETURN ADD_CALL set_env_attr(
   SQLHENV      envHandle,
   SQLINTEGER   attribute,
   int32_t   value) {
@@ -1284,7 +1325,7 @@ SQLRETURN set_env_attr(
   return rtnValue;
 }
 
-SQLRETURN SQLSetEnvAttr(
+SQLRETURN ADD_CALL SQLSetEnvAttr(
   SQLHENV      envHandle,
   SQLINTEGER   attribute,
   SQLPOINTER   valuePtr,
@@ -1349,7 +1390,7 @@ SQLRETURN SQLSetEnvAttr(
 
 // SQLSetParam see SQLBindParameter
 
-SQLRETURN SQLSetPos(
+SQLRETURN ADD_CALL SQLSetPos(
   SQLHSTMT        StatementHandle,
   SQLSETPOSIROW   RowNumber,
   SQLUSMALLINT    Operation,
@@ -1361,7 +1402,7 @@ SQLRETURN SQLSetPos(
 // SQLSetScrollOptions see SQLGetInfo and SQLSetStmtAttr
 
 
-SQLRETURN SQLSetStmtAttr(
+SQLRETURN ADD_CALL SQLSetStmtAttr(
   SQLHSTMT      StatementHandle,
   SQLINTEGER    Attribute,
   SQLPOINTER    ValuePtr,
@@ -1387,7 +1428,7 @@ SQLRETURN SQLSetStmtAttr(
 //   return SQL_ERROR;
 // }
 
-SQLRETURN SQLStatistics(
+SQLRETURN ADD_CALL SQLStatistics(
   SQLHSTMT        StatementHandle,
   SQLCHAR *       CatalogName,
   SQLSMALLINT     NameLength1,
@@ -1401,7 +1442,7 @@ SQLRETURN SQLStatistics(
   return SQL_ERROR;
 }
 
-SQLRETURN SQLTablePrivileges(
+SQLRETURN ADD_CALL SQLTablePrivileges(
   SQLHSTMT      StatementHandle,
   SQLCHAR *     CatalogName,
   SQLSMALLINT   NameLength1,
@@ -1414,7 +1455,7 @@ SQLRETURN SQLTablePrivileges(
 }
 
 
-SQLRETURN SQLTables(
+SQLRETURN ADD_CALL SQLTables(
   SQLHSTMT       stmtHandle,
   SQLCHAR *      catalogName,
   SQLSMALLINT    catalogNameLength,
@@ -1445,58 +1486,55 @@ SQLRETURN SQLTables(
         rtnValue = SQL_INVALID_HANDLE;
       } else {
         JNIEnv* env = specificHandle->env();
+        JvmManager& jvm = specificHandle->jvm();
 
-        jobject dbmd = env->CallObjectMethod(specificHandle->_connHandle->_conn, specificHandle->_connHandle->_getDbmdMid);
-        if (NULL == dbmd || env->ExceptionCheck()) {
+        JVM_CALL(jobject dbmd = jvm.CallObjectMethodA(specificHandle->_connHandle->_conn, "conn", "getDbmd"));
+        string sCatalog = toCppString(reinterpret_cast<char*>(catalogName), catalogNameLength);
+        string sSchema = toCppString(reinterpret_cast<char*>(schemaName), schemaNameLength);
+        string sTable = toCppString(reinterpret_cast<char*>(tableName), tableNameLength);
+
+        if (SQL_ALL_CATALOGS == sCatalog && sSchema.empty() && sTable.empty()) {
+          // TODO address the redaction of data to make all columns except TABLE_CAT null
+          jstring catalog = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
+          JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethodA(dbmd, "dbmd", "getTables",
+                                                make_args("LLLL", catalog, NULL, NULL, NULL).get()));
+        } else if (SQL_ALL_SCHEMAS == sSchema && sCatalog.empty() && sTable.empty()) {
+          // TODO address the redaction of data to make all columns except TABLE_SCHEM null
+          jstring schemaPattern = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
+          JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethodA(dbmd, "dbmd", "getTables",
+                                                make_args("LLLL", NULL, schemaPattern, NULL, NULL).get()));
+        } else if (SQL_ALL_TABLE_TYPES == sTable && sCatalog.empty() && sSchema.empty()) {
+          // TODO address the redaction of data to make all columns except TABLE_TYPE null
+          jstring tableNamePattern = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
+          JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethodA(dbmd, "dbmd", "getTables",
+                                                make_args("LLLL", NULL, NULL, tableNamePattern, NULL).get()));
+        } else {
+          jstring catalog = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
+          jstring schemaPattern = toJString(env, reinterpret_cast<char*>(schemaName), schemaNameLength);
+          jstring tableNamePattern = toJString(env, reinterpret_cast<char*>(tableName), tableNameLength);
+          jobjectArray types = NULL;
+          if (NULL != tableType) {
+            vector<string> tokens;
+
+            Tokenize(toCppString(reinterpret_cast<char*>(tableType), tableTypeLength), tokens, ",");
+            size_t numTypes = tokens.size();
+            types = env->NewObjectArray(numTypes, specificHandle->_connHandle->_stringCls,
+                                        toJString(env, "", SQL_NTS));
+            for (size_t i = 0; i < numTypes; ++i) {
+              env->SetObjectArrayElement(types, i, toJString(env, tokens[i].c_str(), SQL_NTS));
+            }
+          }
+          JVM_CALL(specificHandle->_resultSet = jvm.CallObjectMethodA(dbmd, "dbmd",  "getTables",
+                                                make_args("LLLL", catalog, schemaPattern, tableNamePattern,
+                                                    types).get()));
+        }
+
+        if (NULL == specificHandle->_resultSet || env->ExceptionCheck()) {
           env->ExceptionDescribe();
           env->ExceptionClear();
           set_diag(specificHandle, GENERAL_ERROR);
         } else {
-          string sCatalog = toCppString(reinterpret_cast<char*>(catalogName), catalogNameLength);
-          string sSchema = toCppString(reinterpret_cast<char*>(schemaName), schemaNameLength);
-          string sTable = toCppString(reinterpret_cast<char*>(tableName), tableNameLength);
-
-          if (SQL_ALL_CATALOGS == sCatalog && sSchema.empty() && sTable.empty()) {
-            // TODO address the redaction of data to make all columns except TABLE_CAT null
-            jstring catalog = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
-            specificHandle->_resultSet = env->CallObjectMethod(dbmd, specificHandle->_connHandle->_getTablesMid,
-                                         catalog, NULL, NULL, NULL);
-          } else if (SQL_ALL_SCHEMAS == sSchema && sCatalog.empty() && sTable.empty()) {
-            // TODO address the redaction of data to make all columns except TABLE_SCHEM null
-            jstring schemaPattern = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
-            specificHandle->_resultSet = env->CallObjectMethod(dbmd, specificHandle->_connHandle->_getTablesMid,
-                                         NULL, schemaPattern, NULL, NULL);
-          } else if (SQL_ALL_TABLE_TYPES == sTable && sCatalog.empty() && sSchema.empty()) {
-            // TODO address the redaction of data to make all columns except TABLE_TYPE null
-            jstring tableNamePattern = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
-            specificHandle->_resultSet = env->CallObjectMethod(dbmd, specificHandle->_connHandle->_getTablesMid,
-                                         NULL, NULL, tableNamePattern, NULL);
-          } else {
-            jstring catalog = toJString(env, reinterpret_cast<char*>(catalogName), catalogNameLength);
-            jstring schemaPattern = toJString(env, reinterpret_cast<char*>(schemaName), schemaNameLength);
-            jstring tableNamePattern = toJString(env, reinterpret_cast<char*>(tableName), tableNameLength);
-            jobjectArray types = NULL;
-            if (NULL != tableType) {
-              vector<string> tokens;
-
-              Tokenize(toCppString(reinterpret_cast<char*>(tableType), tableTypeLength), tokens, ",");
-              size_t numTypes = tokens.size();
-              types = env->NewObjectArray(numTypes, specificHandle->_connHandle->_stringCls,
-                                          toJString(env, "", SQL_NTS));
-              for (size_t i = 0; i < numTypes; ++i) {
-                env->SetObjectArrayElement(types, i, toJString(env, tokens[i].c_str(), SQL_NTS));
-              }
-            }
-            specificHandle->_resultSet = env->CallObjectMethod(dbmd, specificHandle->_connHandle->_getTablesMid, catalog, schemaPattern, tableNamePattern, types);
-          }
-
-          if (NULL == specificHandle->_resultSet || env->ExceptionCheck()) {
-            env->ExceptionDescribe();
-            env->ExceptionClear();
-            set_diag(specificHandle, GENERAL_ERROR);
-          } else {
-            rtnValue = SQL_SUCCESS;
-          }
+          rtnValue = SQL_SUCCESS;
         }
       }
     }

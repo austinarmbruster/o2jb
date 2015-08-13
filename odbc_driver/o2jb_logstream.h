@@ -27,6 +27,7 @@ public:
   LogStream(std::ostream& sink, std::size_t buff_sz = 256);
   LogStream(std::string const& sink, std::size_t buff_sz = 256);
   ~LogStream();
+  std::ostream& stream();
 
 protected:
   bool doOutput();
@@ -34,10 +35,9 @@ protected:
 
 private:
   //copying not allowed.
-  LogStream(const LogStream &) {};
+  LogStream(const LogStream &)  : std::streambuf() {};
   LogStream &operator=(const LogStream &) { return *this; };
 
-  std::ostream& stream();
   std::ostream* _theStream;
   bool _ownTheStream;
   std::vector<char> _buffer;

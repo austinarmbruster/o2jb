@@ -23,9 +23,9 @@
 #include "java_error.h"
 #include "json_util.h"
 #include "RegistryKey.h"
+#include "o2jb_install.h"
 
 #include <direct.h>
-#include <odbcinst.h>
 
 #include <cstdio>
 #include <iterator>
@@ -53,6 +53,10 @@ using std::map;
 using std::ofstream;
 using std::string;
 using std::stringstream;
+
+#define  ODBC_ADD_DSN     1
+#define  ODBC_CONFIG_DSN  2
+#define  ODBC_REMOVE_DSN  3
 
 namespace {
 typedef map<string, string> attr_ctr_t;
@@ -315,11 +319,11 @@ BOOL ConfigDSN(
   return rtnValue;
 }
 
-BOOL ConfigTranslator(
-  HWND     hwndParent,
-  DWORD *  pvOption) {
-  LoggerPtr logger = Logger::getLogger("config");
-  LOG_DEBUG(logger, "received a call to ConfigTranslator");
+// BOOL ConfigTranslator(
+//   HWND     hwndParent,
+//   DWORD *  pvOption) {
+//   LoggerPtr logger = Logger::getLogger("config");
+//   LOG_DEBUG(logger, "received a call to ConfigTranslator");
 
-  return TRUE;
-}
+//   return TRUE;
+// }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 AnaVation, LLC. 
+ * Copyright 2015 AnaVation, LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,9 @@ SQLRETURN BindData::update(O2jbStmtHandle * stmtHandle, const SQLUSMALLINT colum
   case SQL_CHAR:
   {
     JNIEnv* env = stmtHandle->env();
-    jstring jValue = reinterpret_cast<jstring>(env->CallObjectMethod(stmtHandle->_resultSet,
-                     stmtHandle->_connHandle->_strMid, columnNumber));
+    JvmManager& jvm = stmtHandle->jvm();
+    jstring jValue = reinterpret_cast<jstring>(jvm.CallObjectMethodA(stmtHandle->_resultSet, "rs", "str",
+                     make_args("I", columnNumber).get()));
     jsize jSize = env->GetStringUTFLength(jValue);
     const char *nativeValue = env->GetStringUTFChars(jValue, 0);
 
@@ -69,6 +70,7 @@ SQLRETURN BindData::update_param(O2jbStmtHandle * stmtHandle, const SQLUSMALLINT
   case SQL_CHAR:
   {
     JNIEnv* env = stmtHandle->env();
+    JvmManager& jvm = stmtHandle->jvm();
     char* asChar = reinterpret_cast<char*>(_targetValuePtr);
 
     jstring jValue;
@@ -78,14 +80,9 @@ SQLRETURN BindData::update_param(O2jbStmtHandle * stmtHandle, const SQLUSMALLINT
       string cppValue(asChar, *_strLenOrInd);
       jValue = env->NewStringUTF(cppValue.c_str());
     }
-    env->CallVoidMethod(stmtHandle->_preparedStmt,
-                        stmtHandle->_connHandle->_psStrMid, columnNumber, jValue);
-    if (env->ExceptionCheck()) {
-      // TODO log the error
-      set_diag(stmtHandle, GENERAL_ERROR);
-    } else {
-      rtnValue = SQL_SUCCESS;
-    }
+    jvm.CallVoidMethodA(stmtHandle->_preparedStmt, "ps", "str",
+                        make_args("IL", columnNumber, jValue).get());
+    rtnValue = SQL_SUCCESS;
   }
   break;
   default:

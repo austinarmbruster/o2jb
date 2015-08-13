@@ -44,49 +44,6 @@ public:
   JNIEnv * env();
 
   jclass _stringCls;
-  jclass _clsCls;
-  jclass _dsCls;
-  jclass _dmCls;
-  jclass _connCls;
-  jclass _stmtCls;
-  jclass _rsCls;
-  jclass _rsmdCls;
-  jclass _dbmdCls;
-  jclass _preparedStmtCls;
-
-  jmethodID _forNameMid;
-  
-  jmethodID _createDsMid;
-  jmethodID _setDriverMid;
-  jmethodID _setUrlMid;
-  jmethodID _setUserMid;
-  jmethodID _setPwdMid;
-  jmethodID _getConnMid;
-
-  jmethodID _getConnUrlOnlyMid;
-  jmethodID _getConnUPMid;
-  jmethodID _getConnIMid;
-
-  jmethodID _prepStmtMid;
-  jmethodID _createStmtMid;
-  jmethodID _getDbmdMid;
-
-  jmethodID _execUpdateMid;
-  jmethodID _execQueryMid;
-  jmethodID _nextMid;
-  jmethodID _strMid;
-  jmethodID _metaDataMid;
-  jmethodID _numColsMid;
-  jmethodID _colDisplaySizeMid;
-  jmethodID _colType;
-  jmethodID _colName;
-
-  jmethodID _psCloseMid;
-  jmethodID _psStrMid;
-  jmethodID _psExecUpdateMid;
-  jmethodID _psExecQueryMid;
-
-  jmethodID _getTablesMid;
 
   jobject _conn;
   jobject _ds;

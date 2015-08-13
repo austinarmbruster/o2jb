@@ -21,7 +21,6 @@
 #include <sqltypes.h>
 #include <sqlext.h>
 
-
 #ifdef BUILDING_O2JB_DLL
 #ifdef __cplusplus
 #define O2JB_DLL extern "C" __declspec(dllexport)
@@ -31,6 +30,7 @@
 #else
 #define O2JB_DLL __declspec(dllimport)
 #endif
+
 
 O2JB_DLL BOOL ConfigDriver(
   HWND    hwndParent,
@@ -47,8 +47,9 @@ O2JB_DLL BOOL ConfigDSN(
   LPCSTR   lpszDriver,
   LPCSTR   lpszAttributes);
 
-O2JB_DLL BOOL ConfigTranslator(
-  HWND     hwndParent,
-  DWORD *  pvOption);
+// O2JB_DLL BOOL ConfigTranslator(
+//   HWND     hwndParent,
+//   DWORD *  pvOption);
+
 
 #endif

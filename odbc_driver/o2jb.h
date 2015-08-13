@@ -31,9 +31,11 @@ extern "C" {
 #define O2JB_DLL __declspec(dllimport)
 #endif
 
-SQLRETURN O2JB_DLL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle);
+#define ADD_CALL __cdecl
 
-SQLRETURN O2JB_DLL SQLBindCol(
+O2JB_DLL SQLRETURN ADD_CALL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle);
+
+O2JB_DLL SQLRETURN ADD_CALL SQLBindCol(
       SQLHSTMT       StatementHandle,
       SQLUSMALLINT   ColumnNumber,
       SQLSMALLINT    TargetType,
@@ -41,7 +43,7 @@ SQLRETURN O2JB_DLL SQLBindCol(
       SQLLEN         BufferLength,
       SQLLEN *       StrLen_or_Ind);
 
-SQLRETURN O2JB_DLL SQLBindParameter(
+O2JB_DLL SQLRETURN ADD_CALL SQLBindParameter(
       SQLHSTMT        StatementHandle,
       SQLUSMALLINT    ParameterNumber,
       SQLSMALLINT     InputOutputType,
@@ -53,7 +55,7 @@ SQLRETURN O2JB_DLL SQLBindParameter(
       SQLLEN          BufferLength,
       SQLLEN *        StrLen_or_IndPtr);
 
-SQLRETURN O2JB_DLL SQLBrowseConnect(
+O2JB_DLL SQLRETURN ADD_CALL SQLBrowseConnect(
      SQLHDBC         ConnectionHandle,
      SQLCHAR *       InConnectionString,
      SQLSMALLINT     StringLength1,
@@ -61,17 +63,17 @@ SQLRETURN O2JB_DLL SQLBrowseConnect(
      SQLSMALLINT     BufferLength,
      SQLSMALLINT *   StringLength2Ptr);
 
-// SQLRETURN O2JB_DLL SQLBulkOperations(
+// O2JB_DLL SQLRETURN ADD_CALL SQLBulkOperations(
 //      SQLHSTMT       StatementHandle,
 //      SQLUSMALLINT   Operation);
 
-SQLRETURN O2JB_DLL SQLCancel(
+O2JB_DLL SQLRETURN ADD_CALL SQLCancel(
      SQLHSTMT     StatementHandle);
 
-SQLRETURN O2JB_DLL SQLCloseCursor(
+O2JB_DLL SQLRETURN ADD_CALL SQLCloseCursor(
      SQLHSTMT     StatementHandle);
 
-SQLRETURN O2JB_DLL SQLColAttribute (
+O2JB_DLL SQLRETURN ADD_CALL SQLColAttribute (
       SQLHSTMT        StatementHandle,
       SQLUSMALLINT    ColumnNumber,
       SQLUSMALLINT    FieldIdentifier,
@@ -80,7 +82,7 @@ SQLRETURN O2JB_DLL SQLColAttribute (
       SQLSMALLINT *   StringLengthPtr,
       SQLLEN *        NumericAttributePtr);
 
-SQLRETURN O2JB_DLL SQLColumnPrivileges(
+O2JB_DLL SQLRETURN ADD_CALL SQLColumnPrivileges(
      SQLHSTMT      StatementHandle,
      SQLCHAR *     CatalogName,
      SQLSMALLINT   NameLength1,
@@ -91,7 +93,7 @@ SQLRETURN O2JB_DLL SQLColumnPrivileges(
      SQLCHAR *     ColumnName,
      SQLSMALLINT   NameLength4);
 
-SQLRETURN O2JB_DLL SQLColumns(
+O2JB_DLL SQLRETURN ADD_CALL SQLColumns(
      SQLHSTMT       StatementHandle,
      SQLCHAR *      CatalogName,
      SQLSMALLINT    NameLength1,
@@ -104,7 +106,7 @@ SQLRETURN O2JB_DLL SQLColumns(
 
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLConnect(
+O2JB_DLL SQLRETURN ADD_CALL SQLConnect(
      SQLHDBC        ConnectionHandle,
      SQLCHAR *      ServerName,
      SQLSMALLINT    NameLength1,
@@ -113,11 +115,11 @@ SQLRETURN O2JB_DLL SQLConnect(
      SQLCHAR *      Authentication,
      SQLSMALLINT    NameLength3);
 
-SQLRETURN O2JB_DLL SQLCopyDesc(
+O2JB_DLL SQLRETURN ADD_CALL SQLCopyDesc(
      SQLHDESC     SourceDescHandle,
      SQLHDESC     TargetDescHandle);
 
-SQLRETURN O2JB_DLL SQLDataSources(
+O2JB_DLL SQLRETURN ADD_CALL SQLDataSources(
      SQLHENV          EnvironmentHandle,
      SQLUSMALLINT     Direction,
      SQLCHAR *        ServerName,
@@ -127,7 +129,7 @@ SQLRETURN O2JB_DLL SQLDataSources(
      SQLSMALLINT      BufferLength2,
      SQLSMALLINT *    NameLength2Ptr);
 
-SQLRETURN O2JB_DLL SQLDescribeCol(
+O2JB_DLL SQLRETURN ADD_CALL SQLDescribeCol(
       SQLHSTMT       StatementHandle,
       SQLUSMALLINT   ColumnNumber,
       SQLCHAR *      ColumnName,
@@ -139,7 +141,7 @@ SQLRETURN O2JB_DLL SQLDescribeCol(
       SQLSMALLINT *  NullablePtr);
 
 
-SQLRETURN O2JB_DLL SQLDescribeParam(
+O2JB_DLL SQLRETURN ADD_CALL SQLDescribeParam(
       SQLHSTMT        StatementHandle,
       SQLUSMALLINT    ParameterNumber,
       SQLSMALLINT *   DataTypePtr,
@@ -148,11 +150,11 @@ SQLRETURN O2JB_DLL SQLDescribeParam(
       SQLSMALLINT *   NullablePtr);
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLDisconnect(
+O2JB_DLL SQLRETURN ADD_CALL SQLDisconnect(
      SQLHDBC     ConnectionHandle);
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLDriverConnect(
+O2JB_DLL SQLRETURN ADD_CALL SQLDriverConnect(
      SQLHDBC         ConnectionHandle,
      SQLHWND         WindowHandle,
      SQLCHAR *       InConnectionString,
@@ -162,21 +164,21 @@ SQLRETURN O2JB_DLL SQLDriverConnect(
      SQLSMALLINT *   StringLength2Ptr,
      SQLUSMALLINT    DriverCompletion);
 
-SQLRETURN O2JB_DLL SQLEndTran(
+O2JB_DLL SQLRETURN ADD_CALL SQLEndTran(
      SQLSMALLINT   HandleType,
      SQLHANDLE     Handle,
      SQLSMALLINT   CompletionType);
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLExecDirect(
+O2JB_DLL SQLRETURN ADD_CALL SQLExecDirect(
      SQLHSTMT     StatementHandle,
      SQLCHAR *    StatementText,
      SQLINTEGER   TextLength);
 
-SQLRETURN O2JB_DLL SQLExecute(
+O2JB_DLL SQLRETURN ADD_CALL SQLExecute(
      SQLHSTMT     StatementHandle);
 
-SQLRETURN O2JB_DLL SQLExtendedFetch(
+O2JB_DLL SQLRETURN ADD_CALL SQLExtendedFetch(
       SQLHSTMT         StatementHandle,
       SQLUSMALLINT     FetchOrientation,
       SQLLEN           FetchOffset,
@@ -184,15 +186,15 @@ SQLRETURN O2JB_DLL SQLExtendedFetch(
       SQLUSMALLINT *   RowStatusArray);
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLFetch(
+O2JB_DLL SQLRETURN ADD_CALL SQLFetch(
      SQLHSTMT     StatementHandle);
 
-SQLRETURN O2JB_DLL SQLFetchScroll(
+O2JB_DLL SQLRETURN ADD_CALL SQLFetchScroll(
       SQLHSTMT      StatementHandle,
       SQLSMALLINT   FetchOrientation,
       SQLLEN        FetchOffset);
 
-SQLRETURN O2JB_DLL SQLForeignKeys(
+O2JB_DLL SQLRETURN ADD_CALL SQLForeignKeys(
      SQLHSTMT       StatementHandle,
      SQLCHAR *      PKCatalogName,
      SQLSMALLINT    NameLength1,
@@ -212,17 +214,17 @@ SQLRETURN O2JB_DLL SQLForeignKeys(
 // SQLFreeEnv
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLFreeHandle(
+O2JB_DLL SQLRETURN ADD_CALL SQLFreeHandle(
      SQLSMALLINT   HandleType,
      SQLHANDLE     Handle);
 
 // Already Exist?
-SQLRETURN O2JB_DLL SQLFreeStmt(
+O2JB_DLL SQLRETURN ADD_CALL SQLFreeStmt(
      SQLHSTMT       StatementHandle,
      SQLUSMALLINT   Option);
 
 
-SQLRETURN O2JB_DLL SQLGetConnectAttr(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetConnectAttr(
      SQLHDBC        ConnectionHandle,
      SQLINTEGER     Attribute,
      SQLPOINTER     ValuePtr,
@@ -232,13 +234,13 @@ SQLRETURN O2JB_DLL SQLGetConnectAttr(
 // SQLGetConnectOption
 
 
-SQLRETURN O2JB_DLL SQLGetCursorName(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetCursorName(
      SQLHSTMT        StatementHandle,
      SQLCHAR *       CursorName,
      SQLSMALLINT     BufferLength,
      SQLSMALLINT *   NameLengthPtr);
 
-SQLRETURN O2JB_DLL SQLGetData(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetData(
       SQLHSTMT       StatementHandle,
       SQLUSMALLINT   Col_or_Param_Num,
       SQLSMALLINT    TargetType,
@@ -246,7 +248,7 @@ SQLRETURN O2JB_DLL SQLGetData(
       SQLLEN         BufferLength,
       SQLLEN *       StrLen_or_IndPtr);
 
-SQLRETURN O2JB_DLL SQLGetData(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetData(
       SQLHSTMT       StatementHandle,
       SQLUSMALLINT   Col_or_Param_Num,
       SQLSMALLINT    TargetType,
@@ -254,7 +256,7 @@ SQLRETURN O2JB_DLL SQLGetData(
       SQLLEN         BufferLength,
       SQLLEN *       StrLen_or_IndPtr);
 
-SQLRETURN O2JB_DLL SQLGetDescRec(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetDescRec(
       SQLHDESC        DescriptorHandle,
       SQLSMALLINT     RecNumber,
       SQLCHAR *       Name,
@@ -267,7 +269,7 @@ SQLRETURN O2JB_DLL SQLGetDescRec(
       SQLSMALLINT *   ScalePtr,
       SQLSMALLINT *   NullablePtr);
 
-SQLRETURN O2JB_DLL SQLGetDiagField(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetDiagField(
      SQLSMALLINT     HandleType,
      SQLHANDLE       Handle,
      SQLSMALLINT     RecNumber,
@@ -276,7 +278,7 @@ SQLRETURN O2JB_DLL SQLGetDiagField(
      SQLSMALLINT     BufferLength,
      SQLSMALLINT *   StringLengthPtr);
 
-SQLRETURN O2JB_DLL SQLGetDiagRec(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetDiagRec(
      SQLSMALLINT     HandleType,
      SQLHANDLE       Handle,
      SQLSMALLINT     RecNumber,
@@ -286,19 +288,19 @@ SQLRETURN O2JB_DLL SQLGetDiagRec(
      SQLSMALLINT     BufferLength,
      SQLSMALLINT *   TextLengthPtr);
 
-SQLRETURN O2JB_DLL SQLGetEnvAttr(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetEnvAttr(
      SQLHENV        EnvironmentHandle,
      SQLINTEGER     Attribute,
      SQLPOINTER     ValuePtr,
      SQLINTEGER     BufferLength,
      SQLINTEGER *   StringLengthPtr);
 
-SQLRETURN O2JB_DLL SQLGetFunctions(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetFunctions(
      SQLHDBC           ConnectionHandle,
      SQLUSMALLINT      FunctionId,
      SQLUSMALLINT *    SupportedPtr);
 
-SQLRETURN O2JB_DLL SQLGetInfo(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetInfo(
      SQLHDBC         ConnectionHandle,
      SQLUSMALLINT    InfoType,
      SQLPOINTER      InfoValuePtr,
@@ -306,7 +308,7 @@ SQLRETURN O2JB_DLL SQLGetInfo(
      SQLSMALLINT *   StringLengthPtr);
 
 
-SQLRETURN O2JB_DLL SQLGetStmtAttr(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetStmtAttr(
      SQLHSTMT        StatementHandle,
      SQLINTEGER      Attribute,
      SQLPOINTER      ValuePtr,
@@ -316,14 +318,14 @@ SQLRETURN O2JB_DLL SQLGetStmtAttr(
 // SQLGetStmtOption
 
 
-SQLRETURN O2JB_DLL SQLGetTypeInfo(
+O2JB_DLL SQLRETURN ADD_CALL SQLGetTypeInfo(
      SQLHSTMT      StatementHandle,
      SQLSMALLINT   DataType);
 
-SQLRETURN O2JB_DLL SQLMoreResults(
+O2JB_DLL SQLRETURN ADD_CALL SQLMoreResults(
      SQLHSTMT     StatementHandle);
 
-SQLRETURN O2JB_DLL SQLNativeSql(
+O2JB_DLL SQLRETURN ADD_CALL SQLNativeSql(
      SQLHDBC        ConnectionHandle,
      SQLCHAR *      InStatementText,
      SQLINTEGER     TextLength1,
@@ -332,27 +334,27 @@ SQLRETURN O2JB_DLL SQLNativeSql(
      SQLINTEGER *   TextLength2Ptr);
 
 
-SQLRETURN O2JB_DLL SQLNumParams(
+O2JB_DLL SQLRETURN ADD_CALL SQLNumParams(
      SQLHSTMT        StatementHandle,
      SQLSMALLINT *   ParameterCountPtr);
 
-SQLRETURN O2JB_DLL SQLNumResultCols(
+O2JB_DLL SQLRETURN ADD_CALL SQLNumResultCols(
      SQLHSTMT        StatementHandle,
      SQLSMALLINT *   ColumnCountPtr);
 
-SQLRETURN O2JB_DLL SQLParamData(
+O2JB_DLL SQLRETURN ADD_CALL SQLParamData(
      SQLHSTMT       StatementHandle,
      SQLPOINTER *   ValuePtrPtr);
 
 // SQLParamOptions 
 
 
-SQLRETURN O2JB_DLL SQLPrepare(
+O2JB_DLL SQLRETURN ADD_CALL SQLPrepare(
      SQLHSTMT      StatementHandle,
      SQLCHAR *     StatementText,
      SQLINTEGER    TextLength);
 
-SQLRETURN O2JB_DLL SQLPrimaryKeys(
+O2JB_DLL SQLRETURN ADD_CALL SQLPrimaryKeys(
      SQLHSTMT       StatementHandle,
      SQLCHAR *      CatalogName,
      SQLSMALLINT    NameLength1,
@@ -362,7 +364,7 @@ SQLRETURN O2JB_DLL SQLPrimaryKeys(
      SQLSMALLINT    NameLength3);
 
 
-SQLRETURN O2JB_DLL SQLProcedureColumns(
+O2JB_DLL SQLRETURN ADD_CALL SQLProcedureColumns(
      SQLHSTMT      StatementHandle,
      SQLCHAR *     CatalogName,
      SQLSMALLINT   NameLength1,
@@ -374,7 +376,7 @@ SQLRETURN O2JB_DLL SQLProcedureColumns(
      SQLSMALLINT   NameLength4);
 
 
-SQLRETURN O2JB_DLL SQLProcedures(
+O2JB_DLL SQLRETURN ADD_CALL SQLProcedures(
      SQLHSTMT       StatementHandle,
      SQLCHAR *      CatalogName,
      SQLSMALLINT    NameLength1,
@@ -383,30 +385,30 @@ SQLRETURN O2JB_DLL SQLProcedures(
      SQLCHAR *      ProcName,
      SQLSMALLINT    NameLength3);
 
-SQLRETURN O2JB_DLL SQLPutData(
+O2JB_DLL SQLRETURN ADD_CALL SQLPutData(
       SQLHSTMT     StatementHandle,
       SQLPOINTER   DataPtr,
       SQLLEN       StrLen_or_Ind);
 
-SQLRETURN O2JB_DLL SQLRowCount(
+O2JB_DLL SQLRETURN ADD_CALL SQLRowCount(
       SQLHSTMT   StatementHandle,
       SQLLEN *   RowCountPtr);
 
 // SQLSetConnectOption 
 
-SQLRETURN O2JB_DLL SQLSetCursorName(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetCursorName(
      SQLHSTMT      StatementHandle,
      SQLCHAR *     CursorName,
      SQLSMALLINT   NameLength);
 
-SQLRETURN O2JB_DLL SQLSetDescField(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetDescField(
      SQLHDESC      DescriptorHandle,
      SQLSMALLINT   RecNumber,
      SQLSMALLINT   FieldIdentifier,
      SQLPOINTER    ValuePtr,
      SQLINTEGER    BufferLength);
 
-SQLRETURN O2JB_DLL SQLSetDescRec(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetDescRec(
       SQLHDESC      DescriptorHandle,
       SQLSMALLINT   RecNumber,
       SQLSMALLINT   Type,
@@ -419,7 +421,7 @@ SQLRETURN O2JB_DLL SQLSetDescRec(
       SQLLEN *      IndicatorPtr);
 
 
-SQLRETURN O2JB_DLL SQLSetEnvAttr(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetEnvAttr(
      SQLHENV      EnvironmentHandle,
      SQLINTEGER   Attribute,
      SQLPOINTER   ValuePtr,
@@ -427,7 +429,7 @@ SQLRETURN O2JB_DLL SQLSetEnvAttr(
 
 // SQLSetParam see SQLBindParameter
 
-SQLRETURN O2JB_DLL SQLSetPos(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetPos(
       SQLHSTMT        StatementHandle,
       SQLSETPOSIROW   RowNumber,
       SQLUSMALLINT    Operation,
@@ -436,7 +438,7 @@ SQLRETURN O2JB_DLL SQLSetPos(
 // SQLSetScrollOptions see SQLGetInfo and SQLSetStmtAttr
 
 
-SQLRETURN O2JB_DLL SQLSetStmtAttr(
+O2JB_DLL SQLRETURN ADD_CALL SQLSetStmtAttr(
      SQLHSTMT      StatementHandle,
      SQLINTEGER    Attribute,
      SQLPOINTER    ValuePtr,
@@ -444,7 +446,7 @@ SQLRETURN O2JB_DLL SQLSetStmtAttr(
 
 // SQLSetStmtOption see SQLSetStmtAttr
 
-// SQLRETURN O2JB_DLL SQLSpecialColumns(
+// O2JB_DLL SQLRETURN ADD_CALL SQLSpecialColumns(
 //      SQLHSTMT      StatementHandle,
 //      SQLSMALLINT   IdentifierType,
 //      SQLCHAR *     CatalogName,
@@ -456,7 +458,7 @@ SQLRETURN O2JB_DLL SQLSetStmtAttr(
 //      SQLSMALLINT   Scope,
 //      SQLSMALLINT   Nullable);
 
-SQLRETURN O2JB_DLL SQLStatistics(
+O2JB_DLL SQLRETURN ADD_CALL SQLStatistics(
      SQLHSTMT        StatementHandle,
      SQLCHAR *       CatalogName,
      SQLSMALLINT     NameLength1,
@@ -467,7 +469,7 @@ SQLRETURN O2JB_DLL SQLStatistics(
      SQLUSMALLINT    Unique,
      SQLUSMALLINT    Reserved);
 
-SQLRETURN O2JB_DLL SQLTablePrivileges(
+O2JB_DLL SQLRETURN ADD_CALL SQLTablePrivileges(
      SQLHSTMT      StatementHandle,
      SQLCHAR *     CatalogName,
      SQLSMALLINT   NameLength1,
@@ -477,7 +479,7 @@ SQLRETURN O2JB_DLL SQLTablePrivileges(
      SQLSMALLINT   NameLength3);
 
 
-SQLRETURN O2JB_DLL SQLTables(
+O2JB_DLL SQLRETURN ADD_CALL SQLTables(
      SQLHSTMT       StatementHandle,
      SQLCHAR *      CatalogName,
      SQLSMALLINT    NameLength1,

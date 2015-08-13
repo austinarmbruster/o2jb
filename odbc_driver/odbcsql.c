@@ -400,7 +400,6 @@ bool DoPrepared(HDBC	lpDbc, TCHAR* szInput)
 			TRYODBCP(lpStmt,
 			         SQL_HANDLE_STMT,
 			         SQLRowCount(lpStmt, &siRowCount));
-			_tprintf(TEXT("row count %ld"), static_cast<long>(siRowCount));
 			if (siRowCount >= 0)
 			{
 				_tprintf(TEXT("%ld %s affected\n"),

@@ -18,6 +18,8 @@
 #include "o2jb_logging.h"
 #include "o2jb_logstream.h"
 
+#include "winreg.h"
+
 using std::string;
 
 namespace o2jb {

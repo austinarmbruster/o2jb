@@ -17,6 +17,7 @@
 
 #include <fstream>
 
+using std::flush;
 using std::ofstream;
 using std::ostream;
 using std::ptrdiff_t;
@@ -24,13 +25,13 @@ using std::size_t;
 using std::string;
 
 namespace o2jb {
-LogStream::LogStream(ostream& sink, size_t buff_sz) : _theStream(&sink), _ownTheStream(false), _buffer(buff_sz+1){
+LogStream::LogStream(ostream& sink, size_t buff_sz) : std::streambuf(), _theStream(&sink), _ownTheStream(false), _buffer(buff_sz+1){
     char *base = &_buffer.front();
     //set putbase pointer and endput pointer
     setp(base, base + buff_sz); 
 }
 
-LogStream::LogStream(string const& fileName, size_t buff_sz) : _ownTheStream(false), _buffer(buff_sz+1) {
+LogStream::LogStream(string const& fileName, size_t buff_sz) : std::streambuf(), _ownTheStream(false), _buffer(buff_sz+1) {
 	ofstream* pfout = new ofstream();
     pfout->open(fileName, ofstream::out | std::ofstream::app);
 	_theStream = pfout;
@@ -57,7 +58,7 @@ bool LogStream::doOutput() {
     string temp;
     temp.assign(pbase(), n);
     pbump(-n);
-    stream() << temp.c_str();
+    stream() << temp.c_str() << flush;
     return true;
 }
 
