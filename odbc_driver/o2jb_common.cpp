@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 AnaVation, LLC. 
+ * Copyright 2015 AnaVation, LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,12 @@
 #include "o2jb_common.h"
 #include "RegistryKey.h"
 
+#include "o2jb_logging.h"
+#include "o2jb_logstream.h"
+
 #include <dirent.h>
+
+#include <cstdio>
 
 #include <algorithm>
 #include <fstream>
@@ -54,7 +59,7 @@ std::string dsnPropFile(std::string const& dsn) {
 }
 
 std::string install_path() {
-  RegistryKey o2jb(HKEY_CURRENT_USER, "Software\\o2jb", RegistryKey::Mode::READ);
+  RegistryKey o2jb(HKEY_CURRENT_USER, RegistryKey::SOFTWARE_BASE + "\\AnaVation, LLC.\\Open ODBC JDBC Bridge", RegistryKey::Mode::READ);
   return o2jb.value("InstallLocation");
 }
 
@@ -85,15 +90,19 @@ std::string replace_all(std::string const& needle, std::string const& replacemen
 
 namespace filesystem {
 bool exist(std::string const& name) {
+  LoggerPtr logger = Logger::getLogger("config");
   // TODO consider using boost::filesystem::exist
   ifstream file(name);
   bool rtnValue = file;
 
   if (rtnValue) {
+    LOG_INFO(logger, "Found file:  " << name);
     file.close();
   } else {
+    LOG_INFO(logger, "File not found:  [" << name << "]  " << errno << " " << strerror(errno));
     DIR *dir;
     if ((dir = opendir(name.c_str())) != NULL) {
+      LOG_INFO(logger, "Found dir:  " << name);
       rtnValue = true;
       closedir(dir);
     }

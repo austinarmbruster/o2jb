@@ -26,6 +26,9 @@
 #include "java_error.h"
 
 #include "properties.h"
+#include "RegistryKey.h"
+ 
+#include "o2jb_sql.h"
 
 #include <jni.h>
 
@@ -63,13 +66,13 @@ using std::transform;
 using std::unique_ptr;
 using std::vector;
 
-using o2jb::dsnPropFile;
 using o2jb::java_error;
 using o2jb::local_ref;
 using o2jb::properties;
 using o2jb::BindData;
 using o2jb::JvmManager;
 using o2jb::LoggerPtr;
+using o2jb::RegistryKey;
 using o2jb::Logger;
 using o2jb::O2jbEnvHandle;
 using o2jb::O2jbConnHandle;
@@ -172,6 +175,8 @@ LoggerPtr logger = Logger::getLogger("o2jb");
 } // end of anonymous namespace
 
 SQLRETURN ADD_CALL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle) {
+  cout << "in alloc handle:  " << inputHandle << endl;
+  cout << "ht:  " << handleType << " " << SQL_HANDLE_ENV << " " << SQL_HANDLE_DBC << " " << SQL_HANDLE_STMT << endl;
   SQLRETURN rtnValue = SQL_ERROR;
   // TODO put the created handle into a temporary variable
   try {
@@ -203,19 +208,29 @@ SQLRETURN ADD_CALL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle,
     }
     break;
     case SQL_HANDLE_STMT:
-    {
-      O2jbConnHandle* connHandle = static_cast<O2jbConnHandle*>(inputHandle);
-      conn_ctr_t::iterator connIter = connections.find(connHandle);
-      if (connIter != connections.end() && *connIter == connHandle) {
-        O2jbStmtHandle* stmtHandle = new O2jbStmtHandle(connHandle);
-        *outHandle = stmtHandle;
-        statements.insert(stmtHandle);
-        rtnValue = SQL_SUCCESS;
-      } else {
-        rtnValue = SQL_INVALID_HANDLE;
+      cout << "create stmt" << endl;
+      {
+        O2jbConnHandle* connHandle = static_cast<O2jbConnHandle*>(inputHandle);
+        cout << "s1" << endl;
+        conn_ctr_t::iterator connIter = connections.find(connHandle);
+        cout << "s2" << endl;
+        if (connIter != connections.end() && *connIter == connHandle) {
+          cout << "s3" << endl;
+          O2jbStmtHandle* stmtHandle = new O2jbStmtHandle(connHandle);
+          cout << "stmtHandle:  " << stmtHandle << endl;
+          *outHandle = stmtHandle;
+          cout << "s4" << endl;
+          statements.insert(stmtHandle);
+          cout << "s5" << endl;
+          rtnValue = SQL_SUCCESS;
+          cout << "s6" << endl;
+        } else {
+          cout << "s7" << endl;
+          rtnValue = SQL_INVALID_HANDLE;
+          cout << "s8" << endl;
+        }
       }
-    }
-    break;
+      break;
 
     default:
       rtnValue = SQL_INVALID_HANDLE;
@@ -336,6 +351,7 @@ SQLRETURN ADD_CALL SQLCloseCursor(
   return SQL_ERROR;
 }
 
+#ifdef __x86_64__
 SQLRETURN ADD_CALL SQLColAttribute (
   SQLHSTMT        stmtHandle,
   SQLUSMALLINT    columnNumber,
@@ -344,6 +360,16 @@ SQLRETURN ADD_CALL SQLColAttribute (
   SQLSMALLINT     bufferLength,
   SQLSMALLINT *   stringLengthPtr,
   SQLLEN *        NumericAttributePtr) {
+#else
+SQLRETURN ADD_CALL SQLColAttribute (
+  SQLHSTMT        stmtHandle,
+  SQLUSMALLINT    columnNumber,
+  SQLUSMALLINT    fieldIdentifier,
+  SQLPOINTER      characterAttributePtr,
+  SQLSMALLINT     bufferLength,
+  SQLSMALLINT *   stringLengthPtr,
+  SQLPOINTER        NumericAttributePtr) {
+#endif
   SQLRETURN rtnValue = SQL_ERROR;
   bufferLength = 0;
 
@@ -540,7 +566,8 @@ SQLRETURN ADD_CALL SQLDriverConnect(
   SQLSMALLINT     bufferLength,
   SQLSMALLINT *   stringLength2Ptr,
   SQLUSMALLINT    driverCompletion) {
-
+  cout << "here" << endl;
+  return SQL_ERROR;
   SQLRETURN rtnValue = SQL_ERROR;
   O2jbConnHandle* specificHandle = reinterpret_cast<O2jbConnHandle*>(connHandle);
   conn_ctr_t::iterator iter = connections.find(specificHandle);
@@ -549,11 +576,15 @@ SQLRETURN ADD_CALL SQLDriverConnect(
   } else {
     map<string, string> connectionValues = parseConnectionString(reinterpret_cast<char*>(inConnectionString),
                                            stringLength1);
-    string dsnFile = dsnPropFile(connectionValues["DSN"]);
-    LOG_DEBUG(logger, "dsn: " << connectionValues["DSN"] << ", file:  " << dsnFile);
-    ifstream dsnPropFile(dsnFile);
+    LOG_DEBUG(logger, "dsn: " << connectionValues["DSN"]);
+
     properties dsnProps;
-    dsnPropFile >> dsnProps;
+    RegistryKey driverReg(HKEY_CURRENT_USER, "Software\\ODBC\\ODBC.INI\\" + connectionValues["DSN"]);
+    dsnProps["cp"] = driverReg.value("cp");
+    dsnProps["driver"] = driverReg.value("jdbcDriver");
+    dsnProps["url"] = driverReg.value("url");
+    dsnProps["user"] = driverReg.value("user");
+    dsnProps["password"] = driverReg.value("password");
 
     O2jbConnHandle& conn = *specificHandle;
     try {
@@ -1264,8 +1295,11 @@ SQLRETURN ADD_CALL SQLRowCount(
   SQLHSTMT   stmtHandle,
   SQLLEN *   rowCountPtr) {
   // TODO validate the handle
+  cout << "rc1" << endl;
   O2jbStmtHandle* specificHandle = reinterpret_cast<O2jbStmtHandle*>(stmtHandle);
+  cout << "rc2:  " << specificHandle << endl;
   *rowCountPtr = specificHandle->_numRows;
+  cout << "rc3" << endl;
   return SQL_SUCCESS;
 }
 

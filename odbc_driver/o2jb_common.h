@@ -17,9 +17,9 @@
  */
 
 #include <windows.h>
-#include <sql.h>
+//include <sql.h>
 #include <sqltypes.h>
-#include <sqlext.h>
+//include <sqlext.h>
 
 #include <string>
 
@@ -33,8 +33,6 @@ void set_diag(T* const handle, SQLCHAR const * const diagState) {
 
 namespace o2jb {
 extern SQLCHAR const * const DEFAULT_STATE;
-std::string dsnPropFile(std::string const& dsn);
-
 std::string install_path();
 
 bool change_to_install_dir();

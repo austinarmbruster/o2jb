@@ -18,6 +18,8 @@
 #include "o2jb_connection.h"
 #include "o2jb_common.h"
 
+#include <sql.h>
+ 
 #include <cmath>
 #include <ostream>
 #include <string>

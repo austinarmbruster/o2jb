@@ -16,17 +16,19 @@
  * limitations under the License.
  */
 
-#include <exception>
+// #include <exception>
+#include <stdexcept>
 #include <string>
 
 namespace o2jb {
 
-class java_error : public std::exception {
+class java_error : public std::runtime_error {
+// class java_error : public std::exception {
 public:
-  // explicit java_error(std::string const& msgIn) : std::runtime_error(msgIn) {}
-  java_error(std::string const&) {}
-  java_error() {}
-  char const * what() const noexcept { return ""; }
+  explicit java_error(std::string const& msgIn) : std::runtime_error(msgIn) {}
+  // java_error(std::string const&) {}
+  // java_error() {}
+  // char const * what() const noexcept { return ""; }
 };
 }
 #endif

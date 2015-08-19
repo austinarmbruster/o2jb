@@ -25,6 +25,7 @@
 #include "RegistryKey.h"
 
 #include <windows.h>
+#include <sql.h>
 
 #include <algorithm>
 #include <fstream>
@@ -49,6 +50,10 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+using std::find_if;
+using std::not1;
+using std::ptr_fun;
+
 using o2jb::properties;
 using o2jb::RegistryKey;
 using o2jb::filesystem::exist;
@@ -60,6 +65,20 @@ typedef set<string> jre_ctr_t;
 namespace o2jb {
 
 namespace {
+static inline string &ltrim(string &s) {
+  s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+  return s;
+}
+
+static inline string &rtrim(string &s) {
+  s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+  return s;
+}
+
+static inline string &trim(string &s) {
+  return ltrim(rtrim(s));
+}
+
 const string CLASS_TAG("class.");
 const string CONSTRUCTOR_TAG("init.");
 const string METHOD_TAG("method.");
@@ -87,30 +106,34 @@ JavaVMOption set_option_string(unique_ptr<char[]> const& str) {
 properties load_app_properties() {
   LoggerPtr logger = Logger::getLogger("config");
   properties props;
-  RegistryKey o2jb(HKEY_CURRENT_USER, "Software\\AnaVation, LLC.\\Open ODBC JDBC Bridge", RegistryKey::Mode::READ);
+  RegistryKey o2jb(HKEY_CURRENT_USER, RegistryKey::SOFTWARE_BASE + "\\AnaVation, LLC.\\Open ODBC JDBC Bridge", RegistryKey::Mode::READ);
   ifstream currentIn;
   string o2jbLoc = o2jb.value("InstallLocation");
+  LOG_DEBUG(logger, "Discovered o2jbLoc:  [" << o2jbLoc << "]");
   string appPropFile = "current.properties";
   if (o2jbLoc.empty() && exist(appPropFile)) {
     LOG_INFO(logger, "Could not find installation location, using local path");
     currentIn.open(appPropFile);
   } else {
-    o2jbLoc += "\\";
-    o2jbLoc += appPropFile;
-    if (exist(o2jbLoc)) {
-      LOG_DEBUG(logger, "Using the registry based location:  " << o2jbLoc);
-      currentIn.open(o2jbLoc);
-    } else {
-      LOG_WARN(logger, "Could not find a configuration file");
+    if ('\\' != o2jbLoc[o2jbLoc.length()-1]) {
+      o2jbLoc += "\\";
     }
+    o2jbLoc += appPropFile;
+     if (exist(o2jbLoc)) {
+      LOG_DEBUG(logger, "Using the registry based location:  " << o2jbLoc);
+      currentIn.open(o2jbLoc, ifstream::in);
+     } else {
+       LOG_WARN(logger, "Could not find a configuration file:  " << o2jbLoc);
+     }
   }
-  if (currentIn.is_open()) {
-    currentIn >> props;
-    currentIn.close();
-  } else {
-    LOG_WARN(logger, "Could not load the configuration, so we will not know the valid JVMs");
-  }
-
+   if (currentIn.is_open()) {
+     currentIn >> props;
+     currentIn.close();
+   } else {
+     LOG_WARN(logger, "Could not load the configuration, so we will not know the valid JVMs:  " << currentIn.rdstate());
+   }
+  //props["base.cp"]="<install_path>\\commons-dbcp-1.4.jar;<install_path>\\commons-pool-1.5.4.jar";
+  //props["jre.versions"]="1.7,1.8";
   return props;
 }
 
@@ -137,7 +160,7 @@ unique_ptr<jvalue[]> make_args(char const * fmt, ...) {
 vector<string> JvmManager::NO_OPTIONS;
 
 JvmManager::JvmManager(string const& classPath, vector<string> const& additionalJvmOptions, string const& jvmPath) :
-  _jvm(NULL), _exceptionCleared(false), _throws(false) {
+  _jvm(NULL), _env(NULL), _exceptionCleared(false), _throws(false) {
   LoggerPtr logger = Logger::getLogger("config");
   vector<unique_ptr<char[]> >::size_type numOptions = 1 + additionalJvmOptions.size();
 
@@ -161,17 +184,23 @@ JvmManager::JvmManager(string const& classPath, vector<string> const& additional
   vm_args.options = &options[0];
   vm_args.ignoreUnrecognized = false;
 
+cout << "jvmPath:  [" << jvmPath << "]" << endl;
   if (!exist(jvmPath)) {
+cout << "jvmPath:  doesn't exist" << endl;
     LOG_ERROR(logger, "The jvmPath does not exist:  " << jvmPath);
     throw java_error("Could not find the JVM.");
   }
 
   LOG_INFO(logger, "About to load library at " << jvmPath);
+cout << "loading lib" << endl;
   HINSTANCE hinstLib = LoadLibrary(TEXT(jvmPath.c_str()));
   LOG_DEBUG(logger, "Library Loaded");
+cout << "lib loaded" << endl;
 
   PtrCreateJavaVM ptrCreateJavaVM = (PtrCreateJavaVM)GetProcAddress(hinstLib, "JNI_CreateJavaVM");
+  cout << "have handle:  " << ptrCreateJavaVM << endl;
   jint res = ptrCreateJavaVM(&_jvm, (void**)&_env, &vm_args);
+  cout << "called jvm create" << endl;
   if (res < 0) {
     stringstream msg;
     msg << "Failed to create the JVM " << res;
@@ -179,6 +208,7 @@ JvmManager::JvmManager(string const& classPath, vector<string> const& additional
     throw java_error(msg.str());
   }
   LOG_DEBUG(logger, "JVM Created");
+  cout << "jvm create" << endl;
 }
 
 JNIEnv* JvmManager::env() const {
@@ -192,14 +222,16 @@ JvmManager::~JvmManager() {
 }
 
 jre_ctr_t parseJres(string const& csv) {
+  LoggerPtr logger = Logger::getLogger("config");
   jre_ctr_t rtnValue;
 
   stringstream lineStream(csv);
   string val;
   while (getline(lineStream, val, ',')) {
+    LOG_DEBUG(logger, "jre val:  [" << val << "]");
     rtnValue.insert(val);
   }
-
+  LOG_DEBUG(logger, "no more jre vals");
   return rtnValue;
 }
 
@@ -257,13 +289,32 @@ jobject JvmManager::CallObjectMethod(jobject obj, std::string const& classTag, s
   mc_ctr_t::iterator iter = _managedClasses.find(classTag);
 
   if (_managedClasses.end() == iter) {
+    cout << "unknown class" << endl;
     throw java_error("Attempting to call a method on an unknown class:  " + classTag);
   }
 
   if (!iter->second.contains(methodTag)) {
+    cout << "unknown method" << endl;
     throw java_error("Attempting to call a unknown method:  " + methodTag);
   }
+  cout << "about to call " << classTag << "." << methodTag << endl;
+  cout << "env " << _env << endl;
+  cout << "obj:  " << obj << endl;
+  cout << "method:  " <<  iter->second[methodTag] << endl;
+  if ("conn" == classTag && "createStatement" == methodTag) {
+    cout << "testing env with new string" << endl;
+    _env->NewStringUTF("Hello World");
+    cout << "got a new string" << endl;
+
+    jmethodID closed = iter->second["isClosed"];
+    cout << "hi" << endl;
+    exception_check(classTag, methodTag);
+    cout << "checked" << endl;
+    cout << "conn is closed:  " << _env->CallBooleanMethod(obj, closed) << endl;
+  }
+  cout << "calling" <<endl;
   jobject rtnValue = _env->CallObjectMethod(obj, iter->second[methodTag]);
+  cout << "finished call" << endl;
   exception_check(classTag, methodTag);
   return rtnValue;
 }
@@ -333,10 +384,11 @@ string JvmManager::javaHome() {
     properties props = load_app_properties();
 
     string allowedJres = props["jre.versions"];
+    LOG_DEBUG(logger, "allowed jres:  " << allowedJres);
     jre_ctr_t validJres = parseJres(allowedJres);
 
     try {
-      RegistryKey jre(HKEY_LOCAL_MACHINE, "Software\\JavaSoft\\Java Runtime Environment", RegistryKey::Mode::READ);
+      RegistryKey jre(HKEY_LOCAL_MACHINE, RegistryKey::SOFTWARE_BASE + "\\JavaSoft\\Java Runtime Environment", RegistryKey::Mode::READ);
       string currentVersion = jre.value("CurrentVersion");
       jre_ctr_t::iterator iter = validJres.find(currentVersion);
       if (validJres.end() != iter) {
@@ -359,22 +411,32 @@ string JvmManager::registryPath() {
   properties props = load_app_properties();
 
   string allowedJres = props["jre.versions"];
+  LOG_DEBUG(logger, "allowed jres:  " << allowedJres);
   jre_ctr_t validJres = parseJres(allowedJres);
   try {
-    RegistryKey jre(HKEY_LOCAL_MACHINE, "Software\\JavaSoft\\Java Runtime Environment", RegistryKey::Mode::READ);
+    cout << "registry path:  [" << RegistryKey::SOFTWARE_BASE + "\\JavaSoft\\Java Runtime Environment" << "]" <<endl;
+    RegistryKey jre(HKEY_LOCAL_MACHINE, RegistryKey::SOFTWARE_BASE + "\\JavaSoft\\Java Runtime Environment", RegistryKey::Mode::READ);
 
     string currentVersion = jre.value("CurrentVersion");
+    currentVersion = trim(currentVersion);
     jre_ctr_t::iterator iter = validJres.find(currentVersion);
     if (validJres.end() != iter) {
       RegistryKey jreVerKey = jre.merge(currentVersion);
+      LOG_DEBUG(logger, "merged jre key");
       string javaHome = jreVerKey.value("JavaHome");
+      LOG_DEBUG(logger, "java home:  " << javaHome);
+      javaHome.replace(3,strlen("Program Files (x86)"), "progra~2");
       string javaLoc(javaHome);
       javaLoc += "\\bin\\java.exe";
       string javaDllLoc(javaHome);
+#ifdef __x86_64__
       javaDllLoc += "\\bin\\server\\jvm.dll";
+#else
+      javaDllLoc += "\\bin\\client\\jvm.dll";
+#endif
       return javaDllLoc;
     } else {
-      LOG_INFO(logger, "current version is not valid:  " << currentVersion);
+      LOG_INFO(logger, "current version is not valid:  [" << currentVersion << "]");
     }
   } catch (registry_exception& e) {
     LoggerPtr logger = Logger::getLogger("config");
@@ -394,8 +456,8 @@ bool JvmManager::loadConfig(string const& propFileName) {
     src >> configProps;
     src.close();
   } else {
-    RegistryKey o2jb(HKEY_CURRENT_USER, "Software\\o2jb", RegistryKey::Mode::READ);
-    string o2jbLoc = o2jb.value("InstallLocation");
+    // RegistryKey o2jb(HKEY_CURRENT_USER, RegistryKey::SOFTWARE_BASE + "\\AnaVation, LLC.\\Open ODBC JDBC Bridge", RegistryKey::Mode::READ);
+    string o2jbLoc = install_path();
     string installLoc = o2jbLoc + "\\" + propFileName;
     if (exist(installLoc)) {
       ifstream src(installLoc);
@@ -556,6 +618,7 @@ void JvmManager::exception_check(string const& classTag, string const& methodTag
     string msg = capture_exception(e);
     LOG_ERROR(logger, "Failed to call " << classTag << "." << methodTag << ":  " << msg);
     if (_throws) {
+      cout << "exception:  " << msg << endl;
       throw java_error(msg);
     }
   }

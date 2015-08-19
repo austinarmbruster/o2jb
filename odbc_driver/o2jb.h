@@ -17,21 +17,33 @@
  */
 
 #include <windows.h>
-#include <sql.h>
+//include <sql.h>
 #include <sqltypes.h>
-#include <sqlext.h>
+//include <sqlext.h>
+
+#ifdef BUILDING_O2JB_DLL
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-  
-#ifdef BUILDING_O2JB_DLL
+#define O2JB_DLL extern "C" __declspec(dllexport)
+#else
 #define O2JB_DLL __declspec(dllexport)
+#endif
+
+#else
+
+#ifdef __cplusplus
+#define O2JB_DLL extern "C" __declspec(dllimport)
 #else
 #define O2JB_DLL __declspec(dllimport)
 #endif
 
+#endif
+
+#ifdef __x86_64__
 #define ADD_CALL __cdecl
+#else
+#define ADD_CALL
+#endif
 
 O2JB_DLL SQLRETURN ADD_CALL SQLAllocHandle(SQLSMALLINT handleType, SQLHANDLE inputHandle, SQLHANDLE *outHandle);
 
@@ -73,6 +85,7 @@ O2JB_DLL SQLRETURN ADD_CALL SQLCancel(
 O2JB_DLL SQLRETURN ADD_CALL SQLCloseCursor(
      SQLHSTMT     StatementHandle);
 
+#ifdef __x86_64__
 O2JB_DLL SQLRETURN ADD_CALL SQLColAttribute (
       SQLHSTMT        StatementHandle,
       SQLUSMALLINT    ColumnNumber,
@@ -81,6 +94,16 @@ O2JB_DLL SQLRETURN ADD_CALL SQLColAttribute (
       SQLSMALLINT     BufferLength,
       SQLSMALLINT *   StringLengthPtr,
       SQLLEN *        NumericAttributePtr);
+#else 
+O2JB_DLL SQLRETURN ADD_CALL SQLColAttribute (
+      SQLHSTMT        StatementHandle,
+      SQLUSMALLINT    ColumnNumber,
+      SQLUSMALLINT    FieldIdentifier,
+      SQLPOINTER      CharacterAttributePtr,
+      SQLSMALLINT     BufferLength,
+      SQLSMALLINT *   StringLengthPtr,
+      SQLPOINTER        NumericAttributePtr);
+#endif
 
 O2JB_DLL SQLRETURN ADD_CALL SQLColumnPrivileges(
      SQLHSTMT      StatementHandle,
@@ -491,8 +514,4 @@ O2JB_DLL SQLRETURN ADD_CALL SQLTables(
      SQLSMALLINT    NameLength4);
 
 // SQLTransact see SQLEndTran
-#ifdef __cplusplus
-}
-#endif
-
 #endif

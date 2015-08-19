@@ -183,7 +183,7 @@ int _tmain(int argc, TCHAR **argv)
 
 	// Connect to the driver.  Use the connection string if supplied
 	// on the input, otherwise let the driver manager prompt for input.
-
+	_tprintf("calling connect\n");
 	TRYODBC(lpDbc,
 	        SQL_HANDLE_DBC,
 	        SQLDriverConnect(lpDbc,

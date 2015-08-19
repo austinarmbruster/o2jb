@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include "o2jb_connection.h"
-#include "o2jb.h"
+//include "o2jb.h"
 #include "o2jb_env.h"
 #include "o2jb_common.h"
 

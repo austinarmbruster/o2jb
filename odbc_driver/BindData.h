@@ -17,9 +17,9 @@
  */
 
 #include <windows.h>
-#include <sql.h>
+//include <sql.h>
 #include <sqltypes.h>
-#include <sqlext.h>
+//include <sqlext.h>
 
 #include <iosfwd>
 

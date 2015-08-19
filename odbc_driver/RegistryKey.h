@@ -27,6 +27,8 @@ namespace o2jb{
 
 class RegistryKey {
 public:
+  static std::string SOFTWARE_BASE;
+
   class Mode;
   RegistryKey(HKEY const& key, std::string const& subKey) throw(registry_exception);
   RegistryKey(HKEY const& key, std::string const& subKey, Mode const&) throw(registry_exception);
@@ -44,6 +46,7 @@ public:
   public:
     static Mode READ;
     static Mode WRITE;
+    static Mode APPEND;
   private:
     Mode(int val);
     friend bool operator==(Mode const& lhs, Mode const& rhs);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 AnaVation, LLC. 
+ * Copyright 2015 AnaVation, LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,10 +38,10 @@ using o2jb::LoggerPtr;
 using o2jb::Logger;
 using o2jb::JvmManager;
 using o2jb::RegistryKey;
+using o2jb::registry_exception;
 using o2jb::change_to_install_dir;
 using o2jb::filesystem::exist;
 using o2jb::properties;
-using o2jb::dsnPropFile;
 using o2jb::json::toJson;
 
 using std::back_inserter;
@@ -111,7 +111,7 @@ bool showDriverConfig(string const& inputConfig, string& outputConfig) {
         }
       }
 
-      string classPath = "o2jb-gui-0.0.1-SNAPSHOT.jar;" + jfxPath;
+      string classPath = "o2jb-gui-0.0.1.jar;" + jfxPath;
       LOG_INFO(logger, "Config classpath:  " << classPath);
       JvmManager jvm(classPath, JvmManager::NO_OPTIONS, JvmManager::registryPath());
       jvm.loadConfig("configGui.properties");
@@ -120,7 +120,7 @@ bool showDriverConfig(string const& inputConfig, string& outputConfig) {
       jobjectArray args = jvm.env()->NewObjectArray(1, stringCls, NULL);
       jvm.env()->SetObjectArrayElement(args, 0, jvm.env()->NewStringUTF(inputConfig.c_str()));
       jvalue zargs[1];
-      zargs[0].l = args;//jvm.env()->NewStringUTF("{\"accept\":\"true\"}");
+      zargs[0].l = args;
       jstring response = (jstring)jvm.CallStaticObjectMethodA("guiApp", "show", zargs);
       if (jvm.env()->ExceptionCheck()) {
         jvm.env()->ExceptionDescribe();
@@ -181,6 +181,7 @@ bool removeDriver(HWND hwndParent, LPCSTR lpszDriver, attr_ctr_t const& attrs) {
 }
 
 bool addDriver(HWND hwndParent, LPCSTR lpszDriver, string const& oldDsn = "", string const& existingConfig = "") {
+  bool rtnValue = false;
   LoggerPtr logger = Logger::getLogger("config");
   LOG_DEBUG(logger, "received a call to add a DSN");
 
@@ -198,7 +199,6 @@ bool addDriver(HWND hwndParent, LPCSTR lpszDriver, string const& oldDsn = "", st
   string url = userConfig["url"];
   string user = userConfig["user"];
   string pwd = userConfig["password"];
-  BOOL goodWrite = FALSE;
   if ("accepted" == action && !dsn.empty() && !url.empty()) {
     if (!oldDsn.empty() && oldDsn != dsn) {
       attr_ctr_t attrs;
@@ -206,47 +206,50 @@ bool addDriver(HWND hwndParent, LPCSTR lpszDriver, string const& oldDsn = "", st
       removeDriver(hwndParent, lpszDriver, attrs);
     }
 
-    char* userDir = getenv("USERPROFILE");
-    if (exist(userDir)) {
-      stringstream filePath;
-      filePath << userDir << "\\" << APP_PATH << "\\" << cleanFileName(dsn) << ".properties";
-      ofstream dsnConfigFile(filePath.str());
-      if (dsnConfigFile.good()) {
-        goodWrite = dsn.empty() ? FALSE : SQLWriteDSNToIni(dsn.c_str(), lpszDriver);
+    try {
+      BOOL goodWrite = dsn.empty() ? FALSE : SQLWriteDSNToIni(dsn.c_str(), lpszDriver);
 
-        if (TRUE == goodWrite) {
-          properties dsnProps;
-          dsnProps.insert(userConfig.begin(), userConfig.end());
-          dsnConfigFile << dsnProps;
-        }
-        dsnConfigFile.close();
+      if (TRUE == goodWrite) {
+        RegistryKey driverReg(HKEY_CURRENT_USER, "Software\\ODBC\\ODBC.INI\\" + dsn, RegistryKey::Mode::APPEND);
+        size_t len = cp.length();
+        driverReg.set_value("cp", REG_SZ, (BYTE*)cp.c_str(), len);
+        len = driver.length();
+        driverReg.set_value("jdbcDriver", REG_SZ, (BYTE*)driver.c_str(), len);
+        len = url.length();
+        driverReg.set_value("url", REG_SZ, (BYTE*)url.c_str(), len);
+        len = user.length();
+        driverReg.set_value("user", REG_SZ, (BYTE*)user.c_str(), len);
+        len = pwd.length();
+        driverReg.set_value("password", REG_SZ, (BYTE*)pwd.c_str(), len);
+        rtnValue = true;
       } else {
-        if (NULL != hwndParent) {
-          MessageBox(hwndParent, "Could not create the configuration file.  JC0003", "Failed Configuration Writing",
-                     MB_OK | MB_ICONEXCLAMATION);
-        }
-        LOG_ERROR(logger, "Could not write to " << filePath.str());
-      }
-    } else {
       if (NULL != hwndParent) {
-        MessageBox(hwndParent, "Configuration failed.  The configuration directory could not be found.  "
-                   "Please contact the application owner. JC0002",
-                   "Failed Configuration", MB_OK | MB_ICONEXCLAMATION);
+        MessageBox(hwndParent, "Could not create the DSN data.  JC0002", "Failed DSN Writing",
+                   MB_OK | MB_ICONEXCLAMATION);
       }
-      LOG_ERROR(logger, "Could not find user propfile [" << userDir << "]");
+      LOG_ERROR(logger, "Could not write DSN to HKCU\\Software\\ODBC\\ODBC.INI\\" << dsn);
+        rtnValue = false;
+      }
+
+    } catch (registry_exception& e) {
+      if (NULL != hwndParent) {
+        MessageBox(hwndParent, "Could not create the configuration data.  JC0003", "Failed Configuration Writing",
+                   MB_OK | MB_ICONEXCLAMATION);
+      }
+      LOG_ERROR(logger, "Could not write to HKCU\\Software\\ODBC\\ODBC.INI\\" << dsn << ", " << e.what());
     }
   } else if ("accepted" == action) {
     if (NULL != hwndParent) {
-      MessageBox(hwndParent, "Configuration failed.  Please contact the application owner. JC0001",
-                 "Failed Configuration", MB_OK | MB_ICONEXCLAMATION);
+      MessageBox(hwndParent, "Configuration failed.  Please contact the application owner.  JC0001", "Failed Configuration",
+                 MB_OK | MB_ICONEXCLAMATION);
     }
     LOG_ERROR(logger, "Either the url=[" << url << "] or dsn=[" << dsn
               << "] is blank after receiving an accept from the Configuration GUI.");
   }
-  return TRUE == goodWrite;
+  return rtnValue;
 }
 
-bool configDriverInternal(HWND hwndParent, LPCSTR lpszDriver, attr_ctr_t const& attrs) {
+bool configDriverInternal(HWND hwndParent, LPCSTR lpszDriver, attr_ctr_t const & attrs) {
   LoggerPtr logger = Logger::getLogger("config");
 
   BOOL goodConfig = FALSE;
@@ -255,9 +258,12 @@ bool configDriverInternal(HWND hwndParent, LPCSTR lpszDriver, attr_ctr_t const& 
     LOG_INFO(logger, "Configuring " << iter->second);
 
     properties currentProps;
-    ifstream dsnProps(dsnPropFile(iter->second));
-    dsnProps >> currentProps;
-    dsnProps.close();
+    RegistryKey driverReg(HKEY_CURRENT_USER, "Software\\ODBC\\ODBC.INI\\" + iter->second);
+    currentProps["cp"] = driverReg.value("cp");
+    currentProps["driver"] = driverReg.value("jdbcDriver");
+    currentProps["url"] = driverReg.value("url");
+    currentProps["user"] = driverReg.value("user");
+    currentProps["password"] = driverReg.value("password");
 
     string dsnJson = toJson(currentProps.begin(), currentProps.end());
 

@@ -22,6 +22,9 @@
 #include "BindData.h"
 #include "o2jb_common.h"
 
+ #include <iostream>
+ using std::endl; using std::cout;
+
 namespace o2jb {
 
 namespace {
@@ -32,7 +35,9 @@ O2jbStmtHandle::O2jbStmtHandle(O2jbConnHandle* inConnHandle) : diagState(o2jb::D
   _stmt(NULL), _isUpdatePs(false), _preparedStmt(NULL), _preparedBindingsPtr(NULL), _resultSet(NULL), _rsmd(NULL),
   _numCols(0), _numRows(-1), _lastFetchOffset(-1), _lastFetchOrientation(-1), _connHandle(inConnHandle) {
   JvmManager& jvm = this->jvm();
-  _stmt = jvm.CallObjectMethod(_connHandle->_conn, "conn", "createStmt");
+  cout << "in create handle, have jvm" << endl;
+  _stmt = jvm.CallObjectMethod(_connHandle->_conn, "conn", "createStatement");
+  cout << "created statement" << endl;
 }
 
 O2jbStmtHandle::~O2jbStmtHandle() {

@@ -15,6 +15,7 @@
  */
 #include "o2jb_install.h"
 
+#include "o2jb_common.h"
 #include "o2jb_logging.h"
 #include "o2jb_logstream.h"
 
@@ -27,6 +28,7 @@ using o2jb::Logger;
 
 using o2jb::RegistryKey;
 using o2jb::registry_exception;
+using o2jb::install_path;
 
 using std::string;
 
@@ -58,9 +60,9 @@ BOOL SQLWriteDSNToIni(
     RegistryKey driver = odbcIni.merge(dsn);
 
     // Driver / REG_SZ / location of driver
-    const char* driverLoc = "c:\\cygwin64\\home\\austin\\git\\odbcjdbc\\aasqlodbc_dll.dll";
-    size_t len = strlen(driverLoc);
-    driver.set_value("Driver", REG_SZ, (BYTE*)driverLoc, len);
+    const string driverLoc = install_path() + "o2jb.dll";
+    size_t len = driverLoc.length();
+    driver.set_value("Driver", REG_SZ, (BYTE*)driverLoc.c_str(), len);
 
     // SafeTransactions / REG_DWORD / 0
     int zero = 0;
