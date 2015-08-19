@@ -62,6 +62,9 @@ typedef SQLRETURN (* PtrSQLRowCount)(
   SQLHSTMT   StatementHandle,
   SQLLEN *   RowCountPtr);
 
+typedef SQLRETURN (* PtrSQLNumResultCols)(
+     SQLHSTMT        StatementHandle,
+     SQLSMALLINT *   ColumnCountPtr);
 
 void addDsn() {
   HINSTANCE hinstLib = LoadLibrary(TEXT(".\\o2jb.dll"));
@@ -77,7 +80,7 @@ void connectDll() {
     HENV  lpEnv = NULL;
     HDBC  lpDbc = NULL;
     HSTMT lpStmt = NULL;
-    TCHAR *pszConnStr = (TCHAR *)"DSN=5a32";
+    TCHAR *pszConnStr = (TCHAR *)"DSN=0.32";
 
     HINSTANCE hinstLib = LoadLibrary(TEXT(".\\o2jb.dll"));
     cout << "Library Loaded" << endl;
@@ -87,42 +90,83 @@ void connectDll() {
     PtrSQLExecDirect ptrExecDirect = (PtrSQLExecDirect)GetProcAddress(hinstLib, "SQLExecDirect");
     PtrSQLFreeStmt ptrFreeStmt = (PtrSQLFreeStmt)GetProcAddress(hinstLib, "SQLFreeStmt");
     PtrSQLRowCount ptrRowCount = (PtrSQLRowCount)GetProcAddress(hinstLib, "SQLRowCount");
+    PtrSQLNumResultCols ptrNumResultCols = (PtrSQLNumResultCols)GetProcAddress(hinstLib, "SQLNumResultCols");
 
     HWND win = GetDesktopWindow();
 
     cout << "1" << endl;
-    ptrAlloc(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &lpEnv);
+    SQLRETURN funcRet = ptrAlloc(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &lpEnv);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "alloc env" << endl;
+      return;
+    }
     cout << "2" << endl;
-    ptrSetEnv(lpEnv,
-              SQL_ATTR_ODBC_VERSION,
-              (SQLPOINTER)SQL_OV_ODBC2,
-              0);
+    funcRet = ptrSetEnv(lpEnv,
+                        SQL_ATTR_ODBC_VERSION,
+                        (SQLPOINTER)SQL_OV_ODBC2,
+                        0);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "set env" << endl;
+      return;
+    }
     cout << "3" << endl;
-    ptrAlloc(SQL_HANDLE_DBC, lpEnv, &lpDbc);
+    funcRet = ptrAlloc(SQL_HANDLE_DBC, lpEnv, &lpDbc);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "alloc dbc" << endl;
+      return;
+    }
     cout << "lpDbc:  " << lpDbc << endl;
     cout << "4" << endl;
-    ptrConn(lpDbc,
-            win,
-            (SQLCHAR*) pszConnStr,
-            SQL_NTS,
-            NULL,
-            0,
-            NULL,
-            SQL_DRIVER_COMPLETE);
+    funcRet = ptrConn(lpDbc,
+                      win,
+                      (SQLCHAR*) pszConnStr,
+                      SQL_NTS,
+                      NULL,
+                      0,
+                      NULL,
+                      SQL_DRIVER_COMPLETE);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "connect" << endl;
+      return;
+    }
     cout << "5" << endl;
-    ptrAlloc(SQL_HANDLE_STMT, lpDbc, &lpStmt);
+    funcRet = ptrAlloc(SQL_HANDLE_STMT, lpDbc, &lpStmt);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "alloc stmt" << endl;
+      return;
+    }
     cout << "6" << endl;
     char const* input = "select * from data";
     cout << "lpStmt:  " << lpStmt << endl;
-    ptrExecDirect(lpStmt, (SQLCHAR*) input, SQL_NTS);
+    funcRet = ptrExecDirect(lpStmt, (SQLCHAR*) input, SQL_NTS);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "exec query:  " << funcRet << " " << SQL_SUCCESS << " " << SQL_ERROR << endl;
+      return;
+    }
     SQLLEN    siRowCount = 0;
     cout << "7" << endl;
     cout << "p: " << ptrExecDirect << " " << ptrRowCount << " r:  " << siRowCount << endl;
     cout << "lpStmt:  " << lpStmt << endl;
-    ptrRowCount(lpStmt, &siRowCount);
-
+    funcRet = ptrRowCount(lpStmt, &siRowCount);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "get row count" << endl;
+      return;
+    }
     cout << "Affected rows:  " << siRowCount << endl;
-    ptrFreeStmt(lpStmt, SQL_CLOSE);
+
+    SQLSMALLINT sNumCols;
+    funcRet = ptrNumResultCols(lpStmt, &sNumCols);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "get num result cols" << endl;
+      return;
+    }
+    cout << "Num cols:  " << sNumCols << endl;
+
+    funcRet = ptrFreeStmt(lpStmt, SQL_CLOSE);
+    if (SQL_SUCCESS != funcRet) {
+      cout << "failed to " << "free stmt" << endl;
+      return;
+    }
     cout << "10" << endl;
   } catch (std::exception& e) {
     cout << "Caught:  " << e.what() << endl;

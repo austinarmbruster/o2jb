@@ -310,7 +310,7 @@ jobject JvmManager::CallObjectMethod(jobject obj, std::string const& classTag, s
     cout << "hi" << endl;
     exception_check(classTag, methodTag);
     cout << "checked" << endl;
-    cout << "conn is closed:  " << _env->CallBooleanMethod(obj, closed) << endl;
+    cout << "conn is closed:  " << (JNI_TRUE == _env->CallBooleanMethod(obj, closed)) << endl;
   }
   cout << "calling" <<endl;
   jobject rtnValue = _env->CallObjectMethod(obj, iter->second[methodTag]);

@@ -17,7 +17,7 @@ all: o2jb.dll myodbctest.exe
 
 JAVAHOME=/usr/java/default
 
-CXXFLAGS=-I$(JAVAHOME)/include -I$(JAVAHOME)/include/win32 --pedantic-errors -Wall -Wno-unused-variable -std=c++11 -std=gnu++11 -O0
+CXXFLAGS=-I$(JAVAHOME)/include -I$(JAVAHOME)/include/win32 --pedantic-errors -Wall -Wno-unused-variable -std=c++11 -std=gnu++11 -O0 -ggdb3 -DLOG_TO_CONSOLE
 #CXXFLAGS=-I$(JAVAHOME)/include -I$(JAVAHOME)/include/win32 -fstack-protector-all -Wstack-protector -Wextra -std=c++11 -std=gnu++11 -ggdb3 -O0 -DLOG_TO_CONSOLE
 
 #CC_PREFIX=x86_64-w64-mingw32-

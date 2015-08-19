@@ -567,7 +567,6 @@ SQLRETURN ADD_CALL SQLDriverConnect(
   SQLSMALLINT *   stringLength2Ptr,
   SQLUSMALLINT    driverCompletion) {
   cout << "here" << endl;
-  return SQL_ERROR;
   SQLRETURN rtnValue = SQL_ERROR;
   O2jbConnHandle* specificHandle = reinterpret_cast<O2jbConnHandle*>(connHandle);
   conn_ctr_t::iterator iter = connections.find(specificHandle);
@@ -585,7 +584,7 @@ SQLRETURN ADD_CALL SQLDriverConnect(
     dsnProps["url"] = driverReg.value("url");
     dsnProps["user"] = driverReg.value("user");
     dsnProps["password"] = driverReg.value("password");
-
+    cout << "dsn props:  " << dsnProps << endl;
     O2jbConnHandle& conn = *specificHandle;
     try {
       conn._envHandle->add_config(dsnProps.begin(), dsnProps.end());
